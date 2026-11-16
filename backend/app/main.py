@@ -9,7 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config
-from app.database import engine, Base
+from app.database import (
+    engine,
+    Base,
+    migrate_case_triage_score_column,
+    migrate_case_reporter_access_token_column,
+)
 from app.routes import auth, cases, evidence, analysis, reports, custody, admin, public
 
 # Create FastAPI application
@@ -46,11 +51,13 @@ async def startup_event():
     """Create all database tables and upload directories on startup."""
     # Import all models so Base.metadata knows about them
     try:
-        from app.models import User, Case, Evidence, CustodyLog, Report, CaseNote  # noqa: F401
+        from app.models import User, Case, Evidence, CustodyLog, Report, CaseNote, CaseTriage  # noqa: F401
     except ImportError:
         pass  # Models may not exist yet during AG-02-A phase
 
     Base.metadata.create_all(bind=engine)
+    migrate_case_triage_score_column(engine)
+    migrate_case_reporter_access_token_column(engine)
 
     # Create upload directories if missing
     upload_dirs = [

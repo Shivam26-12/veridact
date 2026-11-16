@@ -5,7 +5,7 @@ Request validation and response serialization for cases.
 from datetime import datetime
 from typing import Optional, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.constants import INCIDENT_TYPES, CASE_STATUSES, SEVERITY_LEVELS
 
@@ -28,11 +28,24 @@ class CreateCaseRequest(BaseModel):
 class UpdateCaseRequest(BaseModel):
     """Update case request — all fields optional."""
     status: Optional[Literal[
-        "open", "in_progress", "under_review", "resolved", "closed", "referred"
+        "open", "in_progress", "under_review", "resolved", "closed", "referred", "withdrawn"
     ]] = None
     severity: Optional[Literal["low", "medium", "high", "critical"]] = None
     assigned_to: Optional[str] = None
-    note: Optional[str] = None
+    note: Optional[str] = Field(None, min_length=1, max_length=5000)
+    note_is_public: bool = False
+
+
+class ReviewDecisionRequest(BaseModel):
+    """Admin decision for an investigator's submitted resolution."""
+    decision: Literal["approve", "return"]
+    reason: Optional[str] = Field(None, max_length=2000)
+
+    @model_validator(mode="after")
+    def require_return_reason(self):
+        if self.decision == "return" and not (self.reason and self.reason.strip()):
+            raise ValueError("A reason is required when returning a case")
+        return self
 
 
 class CaseNoteResponse(BaseModel):
@@ -43,6 +56,7 @@ class CaseNoteResponse(BaseModel):
     content: str
     is_public: bool
     created_at: datetime
+    author_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -68,6 +82,12 @@ class CaseResponse(BaseModel):
     closed_at: Optional[datetime] = None
     submitter_name: Optional[str] = None
     assignee_name: Optional[str] = None
+    triage_status: Optional[str] = None
+    predicted_severity: Optional[str] = None
+    report_detail_score: Optional[int] = None
+    review_priority: Optional[str] = None
+    triage_summary: Optional[str] = None
+    reporter_access_token: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

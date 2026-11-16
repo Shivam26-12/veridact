@@ -1,6 +1,6 @@
 export const USER_ROLES = ["super_admin", "supervisor", "investigator", "citizen", "api_partner"] as const;
 export type UserRole = typeof USER_ROLES[number];
-export const CASE_STATUSES = ["open", "in_progress", "under_review", "resolved", "closed", "referred"] as const;
+export const CASE_STATUSES = ["open", "in_progress", "under_review", "resolved", "closed", "referred", "withdrawn"] as const;
 export type CaseStatus = typeof CASE_STATUSES[number];
 export const INCIDENT_TYPES = [
   "phishing", "ransomware", "data_breach", "ddos", "malware",

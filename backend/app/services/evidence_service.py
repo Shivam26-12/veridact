@@ -6,6 +6,7 @@ import os
 import uuid
 import logging
 import hashlib
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -25,7 +26,7 @@ CHUNK_SIZE = 64 * 1024  # 64 KB
 
 @dataclass
 class EvidenceSaveResult:
-    """Result of saving an uploaded file to disk."""
+    """Result of storing an uploaded evidence file."""
     stored_filename: str
     file_path: str
     original_filename: str
@@ -47,24 +48,53 @@ async def save_upload_file(upload_file: UploadFile, case_id: str) -> EvidenceSav
     original_filename = upload_file.filename or "unknown"
     file_type, mime_type = validate_upload(file_content, original_filename)
 
-    # Determine stored filename: always UUID + original extension
+    sha256_hash = hashlib.sha256(file_content).hexdigest()
     _, ext = os.path.splitext(original_filename.lower())
-    stored_name = f"{uuid.uuid4()}{ext}"
+    public_id = str(uuid.uuid4())
+
+    if file_type == "screenshot" and config.CLOUDINARY_URL:
+        try:
+            import cloudinary
+            from cloudinary import uploader
+
+            cloudinary.config(cloudinary_url=config.CLOUDINARY_URL)
+            result = uploader.upload(
+                file_content,
+                public_id=public_id,
+                resource_type="image",
+                type="authenticated",
+                overwrite=False,
+                unique_filename=False,
+            )
+            cloudinary_public_id = result["public_id"]
+            return EvidenceSaveResult(
+                stored_filename=cloudinary_public_id,
+                file_path=f"cloudinary://image/authenticated/{cloudinary_public_id}",
+                original_filename=original_filename,
+                file_type=file_type,
+                mime_type=mime_type,
+                file_size=len(file_content),
+                sha256_hash=sha256_hash,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Cloudinary upload failed")
+            raise HTTPException(status_code=502, detail="Cloudinary image upload failed") from e
+
+    stored_name = f"{public_id}{ext}"
 
     # Build storage path
     evidence_dir = os.path.join(config.UPLOAD_DIR, "evidence")
     os.makedirs(evidence_dir, exist_ok=True)
     file_path = os.path.join(evidence_dir, stored_name)
 
-    # Write file in chunks, computing SHA-256 simultaneously
-    sha256 = hashlib.sha256()
     written = 0
     try:
         with open(file_path, "wb") as f:
             offset = 0
             while offset < len(file_content):
                 chunk = file_content[offset: offset + CHUNK_SIZE]
-                sha256.update(chunk)
                 f.write(chunk)
                 written += len(chunk)
                 offset += CHUNK_SIZE
@@ -82,8 +112,49 @@ async def save_upload_file(upload_file: UploadFile, case_id: str) -> EvidenceSav
         file_type=file_type,
         mime_type=mime_type,
         file_size=written,
-        sha256_hash=sha256.hexdigest(),
+        sha256_hash=sha256_hash,
     )
+
+
+def get_file_url(evidence: Evidence) -> Optional[str]:
+    """Create a short-lived URL for a private Cloudinary image."""
+    if not evidence.file_path.startswith("cloudinary://"):
+        return None
+
+    try:
+        import cloudinary
+        from cloudinary.utils import private_download_url
+
+        resource_type, delivery_type, public_id = evidence.file_path.removeprefix(
+            "cloudinary://"
+        ).split("/", 2)
+        cloudinary.config(cloudinary_url=config.CLOUDINARY_URL)
+        image_format = "jpg" if evidence.mime_type == "image/jpeg" else evidence.mime_type.split("/")[-1]
+        return private_download_url(
+            public_id,
+            image_format,
+            resource_type=resource_type,
+            type=delivery_type,
+            expires_at=int(time.time()) + config.CLOUDINARY_URL_EXPIRY_SECONDS,
+        )
+    except Exception:
+        logger.exception("Could not generate Cloudinary evidence URL")
+        return None
+
+
+def delete_stored_file(evidence: Evidence) -> None:
+    """Delete an evidence asset from Cloudinary or local storage."""
+    if evidence.file_path.startswith("cloudinary://"):
+        import cloudinary
+        from cloudinary import uploader
+
+        resource_type, delivery_type, public_id = evidence.file_path.removeprefix(
+            "cloudinary://"
+        ).split("/", 2)
+        cloudinary.config(cloudinary_url=config.CLOUDINARY_URL)
+        uploader.destroy(public_id, resource_type=resource_type, type=delivery_type)
+    elif evidence.file_path and os.path.exists(evidence.file_path):
+        os.remove(evidence.file_path)
 
 
 def create_evidence_record(

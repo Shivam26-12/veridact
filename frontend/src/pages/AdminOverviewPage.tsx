@@ -3,7 +3,7 @@
 // ============================================================
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, Clock, Settings, FolderOpen, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react'
+import { Users, Clock, Settings, FolderOpen, AlertTriangle, ShieldCheck, Loader2, ArrowUpRight } from 'lucide-react'
 import { adminService } from '@/services/adminService'
 import type { AnalyticsSummary } from '@/types/api.types'
 
@@ -69,6 +69,44 @@ export default function AdminOverviewPage() {
           </div>
         ))}
       </div>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-h4 font-semibold text-text-primary">Recent incidents</h2>
+            <p className="text-caption text-text-muted mt-1">Open a case to review details or assign an investigator.</p>
+          </div>
+          <button onClick={() => navigate('/dashboard/cases')} className="btn-secondary text-caption gap-2">
+            All incidents <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {(analytics?.recent_incidents.length ?? 0) === 0 ? (
+          <div className="border border-surface-border px-4 py-8 text-center text-body-sm text-text-muted">
+            No incidents have been submitted yet.
+          </div>
+        ) : (
+          <div className="card-base divide-y divide-surface-border overflow-hidden">
+            {analytics?.recent_incidents.map(incident => (
+              <button
+                key={incident.id}
+                type="button"
+                onClick={() => navigate(`/dashboard/cases/${incident.id}`)}
+                className="w-full text-left px-4 py-3 hover:bg-surface-elevated/60 transition-colors grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-2 sm:items-center"
+              >
+                <span className="min-w-0">
+                  <span className="font-mono-data text-caption text-accent-primary block">{incident.case_number}</span>
+                  <span className="text-body-sm text-text-primary truncate block">{incident.title}</span>
+                </span>
+                <span className="badge-base border border-surface-border text-text-secondary capitalize justify-self-start">
+                  {incident.status.replace(/_/g, ' ')}
+                </span>
+                <span className={`text-caption ${incident.assigned_to ? 'text-text-secondary' : 'text-status-pending'}`}>
+                  {incident.assigned_to ? 'Assigned' : 'Unassigned'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Manage Users', path: '/admin/users', icon: Users, desc: 'View, edit, and deactivate accounts' },

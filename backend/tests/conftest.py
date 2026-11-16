@@ -23,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 os.environ["DATABASE_URL"] = "sqlite://"
 
 from app import models  # noqa: E402,F401  (registers every table on Base.metadata)
+from app import config  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import User  # noqa: E402
@@ -37,6 +38,13 @@ TEST_PASSWORD = "demo1234"
 # still verifies it correctly because the cost is embedded in the hash itself.
 _fast_context = auth_service.pwd_context.copy(bcrypt__rounds=4)
 TEST_PASSWORD_HASH = _fast_context.hash(TEST_PASSWORD)
+
+
+@pytest.fixture(autouse=True)
+def isolate_external_services(monkeypatch, tmp_path):
+    """Keep tests offline and prevent generated reports from polluting uploads."""
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(config, "REPORT_DIR", str(tmp_path / "reports"))
 
 TEST_ENGINE = create_engine(
     "sqlite://",

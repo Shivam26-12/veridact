@@ -29,6 +29,31 @@ const INCIDENT_OPTIONS: { type: IncidentType; label: string; desc: string; icon:
 
 const STEPS = ['Incident Type', 'Description', 'Upload File', 'Review & Submit']
 
+function getSubmissionError(error: unknown, fallback: string): string {
+  const apiError = error as {
+    response?: { status?: number; data?: { detail?: unknown } }
+    code?: string
+    message?: string
+  }
+  const detail = apiError?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map(item => typeof item === 'object' && item !== null && 'msg' in item
+        ? String(item.msg)
+        : String(item))
+      .join('; ')
+  }
+  if (apiError?.response?.status) {
+    return `${fallback} (HTTP ${apiError.response.status})`
+  }
+  if (apiError?.code === 'ECONNABORTED' || apiError?.message?.toLowerCase().includes('timeout')) {
+    return `${fallback} The request timed out.`
+  }
+  if (apiError?.message) return `${fallback} (${apiError.message})`
+  return fallback
+}
+
 interface FormData {
   incident_type: IncidentType | ''
   title: string
@@ -47,7 +72,14 @@ export default function SubmitPage() {
     contact_email: '', contact_phone: '', location: '', file: null,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState<{ caseNumber: string; hash: string } | null>(null)
+  const [submitted, setSubmitted] = useState<{
+    caseNumber: string
+    caseId: string
+    accessCode: string
+    hash: string
+    evidencePending: boolean
+    uploadError?: string
+  } | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [dragActive, setDragActive] = useState(false)
@@ -70,7 +102,6 @@ export default function SubmitPage() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      // Step 1: Create the incident case
       const createdCase = await caseService.createCaseAnonymous({
         title: formData.title,
         description: formData.description,
@@ -81,24 +112,66 @@ export default function SubmitPage() {
         affected_systems: formData.affected_systems || undefined,
       })
 
-      // Step 2: Upload the evidence file
-      let sha256Hash = ''
       if (formData.file) {
-        const evidence = await evidenceService.uploadEvidence(createdCase.id, formData.file)
-        sha256Hash = evidence.sha256_hash
+        try {
+          const evidence = await evidenceService.uploadEvidence(createdCase.id, formData.file)
+          const accessCode = createdCase.reporter_access_token ?? ''
+          if (accessCode) sessionStorage.setItem(`case-access:${createdCase.case_number}`, accessCode)
+          setSubmitted({
+            caseNumber: createdCase.case_number,
+            caseId: createdCase.id,
+            accessCode,
+            hash: evidence.sha256_hash,
+            evidencePending: false,
+          })
+          return
+        } catch (uploadError) {
+          const accessCode = createdCase.reporter_access_token ?? ''
+          if (accessCode) sessionStorage.setItem(`case-access:${createdCase.case_number}`, accessCode)
+          setSubmitted({
+            caseNumber: createdCase.case_number,
+            caseId: createdCase.id,
+            accessCode,
+            hash: '',
+            evidencePending: true,
+            uploadError: getSubmissionError(uploadError, 'Incident saved, but evidence upload failed.'),
+          })
+          return
+        }
       }
 
+      const accessCode = createdCase.reporter_access_token ?? ''
+      if (accessCode) sessionStorage.setItem(`case-access:${createdCase.case_number}`, accessCode)
       setSubmitted({
         caseNumber: createdCase.case_number,
-        hash: sha256Hash,
+        caseId: createdCase.id,
+        accessCode,
+        hash: '',
+        evidencePending: false,
       })
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      if (typeof detail === 'string') {
-        setSubmitError(detail)
-      } else {
-        setSubmitError('Submission failed. Please check your connection and try again.')
-      }
+    } catch (error) {
+      setSubmitError(getSubmissionError(error, 'Incident could not be created.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRetryEvidence = async () => {
+    if (!submitted?.evidencePending || !formData.file) return
+    setIsSubmitting(true)
+    try {
+      const evidence = await evidenceService.uploadEvidence(submitted.caseId, formData.file)
+      setSubmitted(current => current ? {
+        ...current,
+        hash: evidence.sha256_hash,
+        evidencePending: false,
+        uploadError: undefined,
+      } : current)
+    } catch (error) {
+      setSubmitted(current => current ? {
+        ...current,
+        uploadError: getSubmissionError(error, 'Evidence upload failed again.'),
+      } : current)
     } finally {
       setIsSubmitting(false)
     }
@@ -134,7 +207,41 @@ export default function SubmitPage() {
                 <p className="hash-display text-[11px]">{submitted.hash}</p>
               </div>
             )}
+            {submitted.accessCode && (
+              <div>
+                <p className="text-caption text-text-muted uppercase tracking-widest mb-1">Private Reporter Access Code</p>
+                <div className="flex items-center gap-2">
+                  <code className="font-mono-data text-caption text-amber-200 break-all flex-1">{submitted.accessCode}</code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(submitted.accessCode)}
+                    className="btn-ghost p-1.5"
+                    aria-label="Copy reporter access code"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-accent-primary" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-caption text-text-muted mt-2">Keep this code private. It is required to download the final investigation report, accept or reopen the outcome, or withdraw the complaint.</p>
+              </div>
+            )}
           </div>
+
+          {submitted.evidencePending && (
+            <div className="p-4 mb-6 text-left rounded-lg bg-amber-500/10 border border-amber-400/30">
+              <p className="text-body-sm font-semibold text-amber-300">Incident received, but the evidence file was not uploaded.</p>
+              <p className="text-caption text-text-secondary mt-1">Do not submit the incident again. Retry the attachment for case {submitted.caseNumber}.</p>
+              {submitted.uploadError && <p className="text-caption text-red-300 mt-2">{submitted.uploadError}</p>}
+              <button
+                type="button"
+                onClick={handleRetryEvidence}
+                disabled={isSubmitting}
+                className="btn-secondary text-body-sm gap-2 mt-3"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Retry evidence upload
+              </button>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to={`/track/${submitted.caseNumber}`} id="confirmation-track" className="btn-primary">

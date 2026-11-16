@@ -3,17 +3,24 @@ VERIDACT — Case Service
 Business logic for case creation, retrieval, listing, and updates.
 """
 import logging
+import hashlib
+import secrets
 from datetime import datetime
 from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, case as sql_case
 
 from app.models.case import Case
 from app.models.case_note import CaseNote
+from app.models.custody_log import CustodyLog
 from app.models.user import User
-from app.schemas.case_schemas import CreateCaseRequest, UpdateCaseRequest
-from app.services import custody_service
+from app.schemas.case_schemas import (
+    CreateCaseRequest,
+    ReviewDecisionRequest,
+    UpdateCaseRequest,
+)
+from app.services import custody_service, report_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +44,7 @@ def create_case(
     Creates a new case with auto-generated case number and logs case_created custody event.
     """
     case_number = generate_case_number(db)
+    reporter_access_token = secrets.token_urlsafe(32) if submitter_id is None else None
 
     new_case = Case(
         case_number=case_number,
@@ -48,7 +56,12 @@ def create_case(
         contact_phone=data.contact_phone,
         location=data.location,
         affected_systems=getattr(data, 'affected_systems', None),
+        reporter_access_token_hash=(
+            hashlib.sha256(reporter_access_token.encode()).hexdigest()
+            if reporter_access_token else None
+        ),
     )
+    new_case.reporter_access_token = reporter_access_token
 
     db.add(new_case)
     db.commit()
@@ -124,8 +137,19 @@ def list_cases(
         )
 
     total = query.count()
+    if current_user.role in {"super_admin", "supervisor"}:
+        priority_order = sql_case(
+            (Case.triage.has(review_priority="urgent"), 0),
+            (Case.triage.has(review_priority="standard"), 1),
+            (Case.triage.has(review_priority="low"), 2),
+            else_=3,
+        )
+        ordering = (priority_order, desc(Case.created_at))
+    else:
+        ordering = (desc(Case.created_at),)
+
     items = (
-        query.order_by(desc(Case.created_at))
+        query.order_by(*ordering)
         .offset((page - 1) * limit)
         .limit(limit)
         .all()
@@ -156,6 +180,24 @@ def update_case(
             raise HTTPException(status_code=403, detail="Access denied: case not assigned to you")
         if data.assigned_to is not None:
             raise HTTPException(status_code=403, detail="Investigators may not reassign cases")
+        if data.status in ("resolved", "closed"):
+            raise HTTPException(
+                status_code=403,
+                detail="Investigators must submit completed work for admin review",
+            )
+
+    if data.status == "resolved":
+        raise HTTPException(
+            status_code=409,
+            detail="Use the admin review decision to resolve a case",
+        )
+    if data.status == "withdrawn":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the verified reporter may withdraw a complaint",
+        )
+    if data.status == "closed" and current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only an admin may close a case")
 
     changes = []
     if data.status is not None and data.status != case.status:
@@ -177,12 +219,12 @@ def update_case(
         case.assigned_to = data.assigned_to
 
     # Handle optional note
-    if data.note:
+    if data.note and data.note.strip():
         note = CaseNote(
             case_id=case.id,
             author_id=current_user.id,
-            content=data.note,
-            is_public=False,
+            content=data.note.strip(),
+            is_public=data.note_is_public,
         )
         db.add(note)
 
@@ -198,4 +240,56 @@ def update_case(
         notes="; ".join(changes) if changes else "Case updated",
     )
 
+    return case
+
+
+def review_case(
+    db: Session,
+    case_id: str,
+    data: ReviewDecisionRequest,
+    current_user: User,
+) -> Case:
+    """Approve an investigator's resolution or return it with a recorded reason."""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only an admin may review resolutions")
+
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    if case.status != "under_review":
+        raise HTTPException(status_code=409, detail="Case is not awaiting admin review")
+
+    if data.decision == "approve":
+        case.status = "resolved"
+        action = "resolution_approved"
+        notes = "Admin approved the investigator's resolution"
+    else:
+        reason = data.reason.strip()
+        case.status = "in_progress"
+        db.add(CaseNote(
+            case_id=case.id,
+            author_id=current_user.id,
+            content=f"Resolution returned for further work: {reason}",
+            is_public=False,
+        ))
+        action = "resolution_returned"
+        notes = f"Resolution returned for further work: {reason}"
+
+    case.updated_at = datetime.utcnow()
+    db.add(CustodyLog(
+        case_id=case.id,
+        performed_by=current_user.id,
+        action=action,
+        notes=notes,
+    ))
+    try:
+        if data.decision == "approve":
+            db.flush()
+            report_service.create_investigation_report(db, case, current_user.id, audience="staff")
+            report_service.create_investigation_report(db, case, current_user.id, audience="reporter")
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(case)
     return case

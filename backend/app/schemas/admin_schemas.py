@@ -31,6 +31,7 @@ class RecentIncident(BaseModel):
     incident_type: str
     severity: str
     status: str
+    assigned_to: Optional[str] = None
     response_status: Optional[str] = None
     created_at: datetime
 

@@ -88,6 +88,12 @@ python seed.py --reset
 python run.py
 ```
 
+To store uploaded images in Cloudinary, copy `backend/.env.example` to `backend/.env` and paste the value after `CLOUDINARY_URL=` from Cloudinary Dashboard > API Keys. The value must include the API key, API secret, and cloud name (`cloudinary://API_KEY:API_SECRET@CLOUD_NAME`); an API key alone is not enough for private server uploads. Keep `backend/.env` secret. Image evidence is uploaded as authenticated assets and staff preview links expire after 15 minutes. Without a Cloudinary URL, uploads continue to use local disk storage.
+
+For AI-assisted case triage, set `GEMINI_API_KEY` in `backend/.env` and restart the backend. Gemini predicts severity and provides a report-detail/verifiability score; the score is not a probability that a complaint is true or false. Low-detail cases are highlighted for lower review priority, while predicted high/critical severity remains urgent. Admins can apply the predicted severity or retry unavailable analysis. If Gemini is unavailable, case reporting and human review continue normally.
+
+When a super admin approves an investigator's resolution, VERIDACT generates separate staff and reporter investigation PDFs. The reporter PDF excludes internal notes and private log details. Anonymous reporters receive a one-time access code on the submission receipt; keep it private because it authorizes report download, acceptance, reopening requests, and withdrawal. On the tracking page, reporters can accept and close a resolved case, request additional justification/transparency (with a required explanation), or withdraw an active complaint.
+
 ### 2. Frontend Setup
 ```bash
 cd frontend
@@ -131,3 +137,11 @@ All seeded demo accounts use the password: `demo1234`
 - `GET /api/admin/users` - Admin user management
 - `GET /api/admin/custody` - System-wide audit log
 - `GET /api/admin/analytics` - SOC analytics overview
+
+## Software Modelling
+
+Project UML-oriented use-case, class, sequence, activity, and case-state diagrams are documented in [docs/07_SOFTWARE_MODELLING.md](docs/07_SOFTWARE_MODELLING.md).
+
+## SRS and Engineering Report
+
+The system requirements, stakeholder analysis, architecture, quality assurance, project plan, and maintenance guidance are documented in [docs/08_SRS_REQUIREMENTS_AND_ENGINEERING_REPORT.md](docs/08_SRS_REQUIREMENTS_AND_ENGINEERING_REPORT.md).

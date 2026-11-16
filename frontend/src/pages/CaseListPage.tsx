@@ -7,7 +7,7 @@ import { Search, FolderOpen, X, Loader2, AlertCircle } from 'lucide-react'
 import { useCases } from '@/hooks/useCases'
 import type { CaseStatus, SeverityLevel } from '@/types/constants'
 
-const STATUS_OPTIONS: CaseStatus[] = ['open', 'in_progress', 'under_review', 'resolved', 'closed', 'referred']
+const STATUS_OPTIONS: CaseStatus[] = ['open', 'in_progress', 'under_review', 'resolved', 'closed', 'referred', 'withdrawn']
 const SEVERITY_OPTIONS: SeverityLevel[] = ['low', 'medium', 'high', 'critical']
 
 const STATUS_BADGE: Record<string, string> = {
@@ -17,6 +17,7 @@ const STATUS_BADGE: Record<string, string> = {
   resolved: 'text-status-referred border-purple-400/30 bg-purple-400/10',
   closed: 'text-status-closed border-slate-400/30 bg-slate-400/10',
   referred: 'text-status-referred border-purple-400/30 bg-purple-400/10',
+  withdrawn: 'text-text-muted border-surface-border bg-surface-elevated',
 }
 
 const SEVERITY_BADGE: Record<string, string> = {
@@ -31,6 +32,13 @@ export default function CaseListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
+  const isAdmin = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('veridact_user') ?? '{}').role === 'super_admin'
+    } catch {
+      return false
+    }
+  })()
 
   const { data, isLoading, error } = useCases({
     status: statusFilter || undefined,
@@ -125,6 +133,7 @@ export default function CaseListPage() {
                 <th className="text-left px-4 py-3">Incident</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Type</th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Severity</th>
+                {isAdmin && <th className="text-left px-4 py-3 hidden lg:table-cell">AI Triage</th>}
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Assigned To</th>
                 <th className="text-left px-4 py-3 hidden xl:table-cell">Updated</th>
@@ -135,7 +144,7 @@ export default function CaseListPage() {
                 <tr
                   key={c.id}
                   id={`caselist-row-${c.id}`}
-                  className="table-row"
+                  className={`table-row ${isAdmin && c.review_priority === 'low' ? 'bg-red-500/5' : ''}`}
                   onClick={() => navigate(`/dashboard/cases/${c.id}`)}
                 >
                   <td className="px-4 py-3">
@@ -148,6 +157,29 @@ export default function CaseListPage() {
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className={`badge-base border ${SEVERITY_BADGE[c.severity] ?? ''}`}>{c.severity}</span>
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {c.triage_status === 'complete' ? (
+                        <div className="space-y-1">
+                          <span className="text-caption text-text-secondary block capitalize">
+                            Predicted: {c.predicted_severity}
+                          </span>
+                          {c.report_detail_score !== null && c.report_detail_score !== undefined && (
+                            <span className={`badge-base border ${c.review_priority === 'low'
+                              ? 'text-red-300 border-red-400/40 bg-red-500/15'
+                              : 'text-text-secondary border-surface-border'}`}>
+                              Report detail {c.report_detail_score}/100
+                              {c.review_priority === 'low' ? ' · Lowest priority' : ''}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-caption text-text-muted capitalize">
+                          {c.triage_status ?? 'Not scored'}
+                        </span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <span className={`badge-base border ${STATUS_BADGE[c.status] ?? ''}`}>{c.status.replace(/_/g, ' ')}</span>
                   </td>

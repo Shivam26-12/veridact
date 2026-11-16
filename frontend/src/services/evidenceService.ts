@@ -23,4 +23,11 @@ export const evidenceService = {
     const response = await apiClient.get<Evidence>(`/evidence/${evidenceId}`)
     return response.data
   },
+
+  async getEvidenceFile(evidenceId: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(`/evidence/${evidenceId}/file`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
 }

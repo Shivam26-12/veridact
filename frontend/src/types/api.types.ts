@@ -24,6 +24,7 @@ export interface AnalyticsSummary {
     incident_type: string;
     severity: string;
     status: string;
+    assigned_to?: string | null;
     response_status?: string;
     created_at: string;
   }>;

@@ -16,6 +16,7 @@ class EvidenceResponse(BaseModel):
     original_filename: str
     stored_filename: str
     file_path: str
+    file_url: Optional[str] = None
     file_type: str
     mime_type: str
     file_size: int

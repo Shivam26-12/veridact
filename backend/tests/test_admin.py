@@ -134,6 +134,7 @@ def test_analytics_computes_real_aggregates(client, case_factory, admin_headers)
     assert body["incidents_by_type"]["ransomware"] == 1
     assert len(body["recent_incidents"]) == 3
     assert body["recent_incidents"][0]["case_number"].startswith("INC-")
+    assert "assigned_to" in body["recent_incidents"][0]
 
 
 def test_analytics_measures_average_resolution_time(

@@ -47,8 +47,28 @@ export const caseService = {
     return response.data
   },
 
+  async reviewCase(caseId: string, decision: 'approve' | 'return', reason?: string): Promise<Case> {
+    const response = await apiClient.post<Case>(`/cases/${caseId}/review`, { decision, reason })
+    return response.data
+  },
+
+  async retryTriage(caseId: string): Promise<Case> {
+    const response = await apiClient.post<Case>(`/cases/${caseId}/triage`)
+    return response.data
+  },
+
   async generateReport(caseId: string): Promise<{ report_id: string; message: string }> {
     const response = await apiClient.post(`/cases/${caseId}/report`)
+    return response.data
+  },
+
+  async downloadReport(reportId: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(`/reports/${reportId}`, { responseType: 'blob' })
+    return response.data
+  },
+
+  async listCaseReports(caseId: string): Promise<{ items: Array<{ id: string; report_type: string; generated_at: string; sha256_hash: string }> }> {
+    const response = await apiClient.get(`/cases/${caseId}/reports`)
     return response.data
   },
 

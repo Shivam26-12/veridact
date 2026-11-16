@@ -28,6 +28,7 @@ class Case(Base):
     assigned_to = Column(
         String(36), ForeignKey("users.id"), nullable=True, index=True
     )
+    reporter_access_token_hash = Column(String(64), nullable=True)
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(20), nullable=True)
     location = Column(String(200), nullable=True)
@@ -51,6 +52,9 @@ class Case(Base):
     reports = relationship("Report", back_populates="case")
     notes = relationship(
         "CaseNote", back_populates="case", cascade="all, delete-orphan"
+    )
+    triage = relationship(
+        "CaseTriage", back_populates="case", uselist=False, cascade="all, delete-orphan"
     )
 
     def __repr__(self):

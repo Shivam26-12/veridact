@@ -11,6 +11,12 @@ export interface Case {
   evidence_count?: number;
   affected_systems?: string | null;
   response_status?: string | null;
+  triage_status?: 'pending' | 'complete' | 'unavailable' | null;
+  predicted_severity?: SeverityLevel | null;
+  report_detail_score?: number | null;
+  review_priority?: 'urgent' | 'standard' | 'low' | null;
+  triage_summary?: string | null;
+  reporter_access_token?: string | null;
 }
 
 export interface CaseDetail extends Case {
@@ -19,7 +25,7 @@ export interface CaseDetail extends Case {
 
 export interface CaseNote {
   id: string; case_id: string; author_id: string; content: string;
-  is_public: boolean; created_at: string;
+  is_public: boolean; created_at: string; author_name?: string | null;
 }
 
 export interface CreateCasePayload {
@@ -38,6 +44,8 @@ export interface UpdateCasePayload {
   assigned_to?: string;
   title?: string;
   description?: string;
+  note?: string;
+  note_is_public?: boolean;
 }
 
 export interface PublicCaseStatus {

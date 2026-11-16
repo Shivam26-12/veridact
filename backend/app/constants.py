@@ -1,5 +1,5 @@
 USER_ROLES = ["super_admin", "supervisor", "investigator", "citizen", "api_partner"]
-CASE_STATUSES = ["open", "in_progress", "under_review", "resolved", "closed", "referred"]
+CASE_STATUSES = ["open", "in_progress", "under_review", "resolved", "closed", "referred", "withdrawn"]
 INCIDENT_TYPES = [
     "phishing", "ransomware", "data_breach", "ddos", "malware",
     "unauthorized_access", "insider_threat", "social_engineering",

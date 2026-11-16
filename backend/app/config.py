@@ -4,6 +4,11 @@ Cybersecurity Incident Reporting and Management System.
 Reads all environment variables with sensible defaults.
 """
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
 # Application
@@ -28,6 +33,11 @@ JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "8"))
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "../uploads")
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "").strip()
+CLOUDINARY_URL_EXPIRY_SECONDS = int(os.getenv("CLOUDINARY_URL_EXPIRY_SECONDS", "900"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+GEMINI_REQUEST_TIMEOUT_SECONDS = int(os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "60"))
 
 # Report Generation
 REPORT_DIR = os.getenv("REPORT_DIR", "../uploads/reports")

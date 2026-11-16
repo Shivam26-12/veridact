@@ -5,7 +5,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft, Eye, FileText, Clock, Upload, Loader2, CheckCircle,
-  UserCheck, AlertTriangle, ShieldAlert
+  UserCheck, ShieldAlert, Send, RotateCcw, ThumbsUp, Download, Sparkles, RefreshCw
 } from 'lucide-react'
 import { caseService } from '@/services/caseService'
 import { adminService } from '@/services/adminService'
@@ -20,6 +20,7 @@ const STATUS_BADGE: Record<string, string> = {
   resolved: 'text-status-referred border-purple-400/30 bg-purple-400/10',
   closed: 'text-text-muted border-surface-border bg-surface-elevated',
   referred: 'text-status-referred border-purple-400/30 bg-purple-400/10',
+  withdrawn: 'text-text-muted border-surface-border bg-surface-elevated',
 }
 
 const SEVERITY_BADGE: Record<string, string> = {
@@ -52,8 +53,15 @@ export default function CaseDetailPage() {
   const [uploading, setUploading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
   const [reportGenerated, setReportGenerated] = useState(false)
+  const [reportId, setReportId] = useState<string | null>(null)
   const [notification, setNotification] = useState<string | null>(null)
   const [responseAction, setResponseAction] = useState('')
+  const [noteDraft, setNoteDraft] = useState('')
+  const [noteIsPublic, setNoteIsPublic] = useState(false)
+  const [savingNote, setSavingNote] = useState(false)
+  const [reviewReason, setReviewReason] = useState('')
+  const [reviewing, setReviewing] = useState(false)
+  const [retryingTriage, setRetryingTriage] = useState(false)
 
   const currentUser = (() => {
     try {
@@ -66,6 +74,7 @@ export default function CaseDetailPage() {
 
   const isSupervisorOrAdmin = currentUser.role === 'supervisor' || currentUser.role === 'super_admin'
   const isSuperAdmin = currentUser.role === 'super_admin'
+  const isStaff = ['investigator', 'supervisor', 'super_admin'].includes(currentUser.role)
 
   const showToast = (message: string) => {
     setNotification(message)
@@ -83,6 +92,10 @@ export default function CaseDetailPage() {
         caseService.getTimeline(caseId).catch(() => []),
       ])
       setCurrentCase(caseData)
+      const reports = await caseService.listCaseReports(caseId).catch(() => ({ items: [] }))
+      const latestReport = reports.items.find(report => report.report_type === 'investigation')
+      setReportId(latestReport?.id ?? null)
+      setReportGenerated(Boolean(latestReport))
       setCustodyLogs(
         timeline.map(t => ({
           id: t.id,
@@ -104,6 +117,12 @@ export default function CaseDetailPage() {
   }, [caseId])
 
   useEffect(() => {
+    if (!isSuperAdmin || currentCase?.triage_status !== 'pending') return
+    const refresh = window.setTimeout(() => loadCaseData(), 3000)
+    return () => window.clearTimeout(refresh)
+  }, [isSuperAdmin, currentCase?.triage_status, caseId])
+
+  useEffect(() => {
     if (isSupervisorOrAdmin) {
       adminService.getUsers().then(res => {
         setInvestigators(res.items.filter(u => u.role === 'investigator' || u.role === 'supervisor'))
@@ -119,6 +138,54 @@ export default function CaseDetailPage() {
       await loadCaseData()
     } catch {
       showToast('Failed to update status')
+    }
+  }
+
+  const handleAddNote = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!caseId || !noteDraft.trim()) return
+    setSavingNote(true)
+    try {
+      await caseService.updateCase(caseId, {
+        note: noteDraft.trim(),
+        note_is_public: noteIsPublic,
+      })
+      setNoteDraft('')
+      showToast('Investigation note added')
+      await loadCaseData()
+    } catch {
+      showToast('Failed to add note')
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  const handleReviewDecision = async (decision: 'approve' | 'return') => {
+    if (!caseId || (decision === 'return' && !reviewReason.trim())) return
+    setReviewing(true)
+    try {
+      await caseService.reviewCase(caseId, decision, decision === 'return' ? reviewReason.trim() : undefined)
+      setReviewReason('')
+      showToast(decision === 'approve' ? 'Resolution approved' : 'Case returned to investigator')
+      await loadCaseData()
+    } catch {
+      showToast('Failed to submit review decision')
+    } finally {
+      setReviewing(false)
+    }
+  }
+
+  const handleRetryTriage = async () => {
+    if (!caseId) return
+    setRetryingTriage(true)
+    try {
+      await caseService.retryTriage(caseId)
+      showToast('Automated triage queued')
+      await loadCaseData()
+    } catch {
+      showToast('Could not start automated triage')
+    } finally {
+      setRetryingTriage(false)
     }
   }
 
@@ -177,7 +244,8 @@ export default function CaseDetailPage() {
     if (!caseId) return
     setGeneratingReport(true)
     try {
-      await caseService.generateReport(caseId)
+      const report = await caseService.generateReport(caseId)
+      setReportId(report.report_id)
       setReportGenerated(true)
       showToast('Incident report certified and generated!')
       await loadCaseData()
@@ -186,6 +254,21 @@ export default function CaseDetailPage() {
       showToast('Incident report ready')
     } finally {
       setGeneratingReport(false)
+    }
+  }
+
+  const handleDownloadReport = async () => {
+    if (!reportId) return
+    try {
+      const blob = await caseService.downloadReport(reportId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${currentCase?.case_number ?? 'case'}-investigation-report.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      showToast('Failed to download investigation report')
     }
   }
 
@@ -280,6 +363,73 @@ export default function CaseDetailPage() {
             </div>
           </div>
 
+          {isSuperAdmin && (
+            <section className={`card-base p-5 border-l-4 ${currentCase.review_priority === 'low'
+              ? 'border-l-red-500 bg-red-950/10'
+              : 'border-l-accent-primary'}`}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Sparkles className={`w-5 h-5 mt-0.5 ${currentCase.review_priority === 'low' ? 'text-red-400' : 'text-accent-primary'}`} />
+                  <div>
+                    <h2 className="text-body-sm font-semibold text-text-primary">Automated triage</h2>
+                    <p className="text-caption text-text-muted mt-1">
+                      AI support signal only. The report-detail score is not a probability that the complaint is true or false.
+                    </p>
+                  </div>
+                </div>
+                {(currentCase.triage_status === 'unavailable' || !currentCase.triage_status) && (
+                  <button
+                    type="button"
+                    onClick={handleRetryTriage}
+                    disabled={retryingTriage}
+                    className="btn-secondary text-caption gap-2"
+                  >
+                    {retryingTriage ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Retry analysis
+                  </button>
+                )}
+              </div>
+              {currentCase.triage_status === 'complete' ? (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="border border-surface-border p-3">
+                    <p className="text-caption text-text-muted uppercase">Predicted severity</p>
+                    <p className="text-body-sm font-semibold text-text-primary capitalize mt-1">{currentCase.predicted_severity}</p>
+                  </div>
+                  <div className={`border p-3 ${currentCase.review_priority === 'low'
+                    ? 'border-red-400/40 bg-red-500/10'
+                    : 'border-surface-border'}`}>
+                    <p className="text-caption text-text-muted uppercase">Report detail score</p>
+                    <p className={`text-body-sm font-semibold mt-1 ${currentCase.review_priority === 'low' ? 'text-red-300' : 'text-text-primary'}`}>
+                      {currentCase.report_detail_score}/100
+                      {currentCase.review_priority === 'low' && ' · Lowest priority'}
+                    </p>
+                  </div>
+                  {currentCase.predicted_severity && currentCase.predicted_severity !== currentCase.severity && (
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSeverity(currentCase.predicted_severity as SeverityLevel)}
+                      className="btn-secondary text-caption sm:col-span-3"
+                    >
+                      Apply predicted severity ({currentCase.predicted_severity})
+                    </button>
+                  )}
+                  <div className="border border-surface-border p-3">
+                    <p className="text-caption text-text-muted uppercase">Queue priority</p>
+                    <p className="text-body-sm font-semibold text-text-primary capitalize mt-1">{currentCase.review_priority}</p>
+                  </div>
+                  {currentCase.triage_summary && (
+                    <p className="sm:col-span-3 text-caption text-text-secondary">{currentCase.triage_summary}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-caption text-text-secondary mt-4 capitalize">
+                  Analysis {currentCase.triage_status ?? 'not available'}
+                  {currentCase.triage_summary ? `: ${currentCase.triage_summary}` : ''}
+                </p>
+              )}
+            </section>
+          )}
+
           {/* Tabs */}
           <div className="flex border-b border-surface-border">
             {TABS.map((tab, i) => (
@@ -295,6 +445,7 @@ export default function CaseDetailPage() {
                 )}
               >
                 {tab} {tab === 'Evidence' && `(${evidenceList.length})`}
+                {tab === 'Notes' && `(${notesList.length})`}
                 {tab === 'Custody Log' && `(${custodyLogs.length})`}
               </button>
             ))}
@@ -339,7 +490,9 @@ export default function CaseDetailPage() {
                     <div key={ev.id ?? i} className="flex items-center justify-between gap-4 p-4 bg-slate-950/40 rounded-lg border border-surface-border">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded bg-surface-elevated flex items-center justify-center">
-                          <Eye className="w-4 h-4 text-text-muted" />
+                          {ev.file_url && ev.mime_type?.startsWith('image/') ? (
+                            <img src={ev.file_url} alt="" className="w-9 h-9 rounded object-cover" />
+                          ) : <Eye className="w-4 h-4 text-text-muted" />}
                         </div>
                         <div>
                           <p className="text-body-sm font-medium text-text-primary">{ev.original_filename}</p>
@@ -350,14 +503,21 @@ export default function CaseDetailPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        id={`casedetail-view-evidence-${i}`}
-                        onClick={() => navigate(`/dashboard/cases/${caseId}/evidence/${ev.id}`)}
-                        className="btn-secondary text-caption gap-1.5 shrink-0"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ev.file_url && (
+                          <a href={ev.file_url} target="_blank" rel="noreferrer" className="btn-secondary text-caption gap-1.5">
+                            <Download className="w-3.5 h-3.5" /> Download
+                          </a>
+                        )}
+                        <button
+                          id={`casedetail-view-evidence-${i}`}
+                          onClick={() => navigate(`/dashboard/cases/${caseId}/evidence/${ev.id}`)}
+                          className="btn-secondary text-caption gap-1.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -367,18 +527,53 @@ export default function CaseDetailPage() {
             {/* Notes tab */}
             {activeTab === 1 && (
               <div className="space-y-4">
+                {isStaff && (
+                  <form onSubmit={handleAddNote} className="space-y-3 border-b border-surface-border pb-5">
+                    <label htmlFor="casedetail-note" className="text-body-sm font-semibold text-text-primary">
+                      Add investigation note
+                    </label>
+                    <textarea
+                      id="casedetail-note"
+                      value={noteDraft}
+                      onChange={e => setNoteDraft(e.target.value)}
+                      className="input-base min-h-28 resize-y"
+                      placeholder="Record findings, actions taken, or follow-up needed..."
+                      maxLength={5000}
+                      required
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <label className="inline-flex items-center gap-2 text-caption text-text-secondary">
+                        <input
+                          type="checkbox"
+                          checked={noteIsPublic}
+                          onChange={e => setNoteIsPublic(e.target.checked)}
+                          className="accent-emerald-500"
+                        />
+                        Share this note with the reporter
+                      </label>
+                      <button type="submit" disabled={savingNote || !noteDraft.trim()} className="btn-primary text-body-sm gap-2">
+                        {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Add note
+                      </button>
+                    </div>
+                  </form>
+                )}
                 {notesList.length === 0 ? (
                   <div className="text-center py-10 text-text-muted">
                     <FileText className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                    <p className="text-body-sm">No notes recorded on this incident.</p>
+                    <p className="text-body-sm">No notes recorded on this incident yet.</p>
                   </div>
                 ) : (
                   notesList.map((note) => (
                     <div key={note.id} className="p-4 bg-slate-950/40 rounded-lg border border-surface-border">
-                      <p className="text-body-sm text-text-primary">{note.content}</p>
-                      <p className="text-caption text-text-muted mt-2">
-                        {new Date(note.created_at).toLocaleString()}
-                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <p className="text-caption text-text-secondary font-medium">{note.author_name ?? 'Staff member'}</p>
+                        <span className="badge-base border text-caption text-text-muted border-surface-border">
+                          {note.is_public ? 'Visible to reporter' : 'Internal'}
+                        </span>
+                      </div>
+                      <p className="text-body-sm text-text-primary whitespace-pre-wrap">{note.content}</p>
+                      <p className="text-caption text-text-muted mt-2">{new Date(note.created_at).toLocaleString()}</p>
                     </div>
                   ))
                 )}
@@ -418,7 +613,7 @@ export default function CaseDetailPage() {
                     <CheckCircle className="w-8 h-8 text-accent-primary mx-auto mb-3" />
                     <p className="text-body font-semibold text-text-primary">Certified Report Generated</p>
                     <p className="text-caption text-text-muted mt-1">Incident audit certificate is signed and on record.</p>
-                    <button id="casedetail-download-report" className="btn-primary mt-4 gap-2">
+                    <button id="casedetail-download-report" onClick={handleDownloadReport} className="btn-primary mt-4 gap-2">
                       <FileText className="w-4 h-4" /> Download PDF Summary
                     </button>
                   </div>
@@ -473,8 +668,8 @@ export default function CaseDetailPage() {
               </div>
             </div>
 
-            {/* Update Status */}
-            <div className="space-y-2 pt-4 border-t border-surface-border/40">
+            {/* Lifecycle Status */}
+            {isStaff && <div className="space-y-2 pt-4 border-t border-surface-border/40">
               <label className="text-caption text-text-muted uppercase tracking-widest block font-semibold">
                 Lifecycle Status
               </label>
@@ -486,12 +681,60 @@ export default function CaseDetailPage() {
               >
                 <option value="open">Open</option>
                 <option value="in_progress">In Progress</option>
-                <option value="under_review">Under Review</option>
-                <option value="resolved">Resolved</option>
+                {currentUser.role !== 'investigator' && <option value="under_review">Awaiting Admin Review</option>}
                 <option value="referred">Referred</option>
-                <option value="closed">Closed</option>
+                {currentCase.status === 'resolved' && <option value="resolved" disabled>Resolved</option>}
+                {currentCase.status === 'closed' && <option value="closed" disabled>Closed</option>}
+                {currentCase.status === 'withdrawn' && <option value="withdrawn" disabled>Withdrawn</option>}
               </select>
-            </div>
+            </div>}
+
+            {currentUser.role === 'investigator' && currentCase.status !== 'under_review' && currentCase.status !== 'resolved' && currentCase.status !== 'closed' && (
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus('under_review')}
+                className="btn-primary w-full text-body-sm gap-2"
+              >
+                <Send className="w-4 h-4" /> Send for admin review
+              </button>
+            )}
+
+            {isSuperAdmin && currentCase.status === 'under_review' && (
+              <div className="space-y-3 pt-4 border-t border-surface-border/40">
+                <div>
+                  <h3 className="text-body-sm font-semibold text-text-primary">Resolution review</h3>
+                  <p className="text-caption text-text-muted mt-1">Approve the investigator's completion or return the case with a reason.</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={reviewing}
+                  onClick={() => handleReviewDecision('approve')}
+                  className="btn-primary w-full text-body-sm gap-2"
+                >
+                  {reviewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
+                  Approve resolution
+                </button>
+                <label htmlFor="review-return-reason" className="text-caption text-text-muted font-semibold block">
+                  Reason for returning to investigator
+                </label>
+                <textarea
+                  id="review-return-reason"
+                  value={reviewReason}
+                  onChange={e => setReviewReason(e.target.value)}
+                  className="input-base min-h-24 resize-y"
+                  maxLength={2000}
+                  placeholder="Explain what additional work is required..."
+                />
+                <button
+                  type="button"
+                  disabled={reviewing || !reviewReason.trim()}
+                  onClick={() => handleReviewDecision('return')}
+                  className="btn-secondary w-full text-body-sm gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" /> Return for further work
+                </button>
+              </div>
+            )}
 
             {/* Assignment Section (Supervisor / Admin only) */}
             {isSupervisorOrAdmin ? (

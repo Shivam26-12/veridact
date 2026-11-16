@@ -10,21 +10,41 @@ import type { Evidence } from '@/types'
 export default function EvidenceDetailPage() {
   const { caseId, evidenceId } = useParams<{ caseId: string; evidenceId: string }>()
   const [evidence, setEvidence] = useState<Evidence | null>(null)
+  const [fileUrl, setFileUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!evidenceId) return
     let cancelled = false
-    evidenceService.getEvidence(evidenceId)
-      .then(res => {
-        if (!cancelled) setEvidence(res)
-      })
-      .catch(err => console.error('Failed to load evidence item:', err))
-      .finally(() => {
+    let objectUrl: string | null = null
+    setLoading(true)
+    setEvidence(null)
+    setFileUrl(null)
+    const loadEvidence = async () => {
+      try {
+        const result = await evidenceService.getEvidence(evidenceId)
+        if (cancelled) return
+        setEvidence(result)
+        if (result.file_url) {
+          setFileUrl(result.file_url)
+        } else {
+          const fileBlob = await evidenceService.getEvidenceFile(evidenceId)
+          objectUrl = URL.createObjectURL(fileBlob)
+          if (cancelled) URL.revokeObjectURL(objectUrl)
+          else setFileUrl(objectUrl)
+        }
+      } catch (err) {
+        console.error('Failed to load evidence item:', err)
+      } finally {
         if (!cancelled) setLoading(false)
-      })
-    return () => { cancelled = true }
+      }
+    }
+    loadEvidence()
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
   }, [evidenceId])
 
   const hash = evidence?.sha256_hash ?? '—'
@@ -62,9 +82,11 @@ export default function EvidenceDetailPage() {
       <div className="card-base p-6 border-l-4 border-l-blue-400">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-h4 font-semibold text-text-primary">Evidence File</h2>
-          <button className="btn-secondary gap-2 text-body-sm">
-            <Download className="w-4 h-4" /> Download
-          </button>
+          {fileUrl && (
+            <a href={fileUrl} download={fileName} target={evidence?.file_url ? '_blank' : undefined} rel="noreferrer" className="btn-secondary gap-2 text-body-sm">
+              <Download className="w-4 h-4" /> Download
+            </a>
+          )}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
           {[
@@ -95,6 +117,16 @@ export default function EvidenceDetailPage() {
           </div>
         </div>
       </div>
+
+      {fileUrl && evidence?.mime_type.startsWith('image/') && (
+        <div className="card-base p-4">
+          <img
+            src={fileUrl}
+            alt={fileName}
+            className="mx-auto max-h-[70vh] max-w-full rounded object-contain"
+          />
+        </div>
+      )}
 
       {/* Integrity verification */}
       <div className="card-base p-6">

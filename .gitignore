@@ -1,28 +1,91 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.pyc
-
-# Environment files
+# Secrets and machine-local configuration
 .env
+.env.*
+!.env.example
+!.env.*.example
+backend/.env
+frontend/.env
 
-# Dependencies
-node_modules/
-.venv/
-
-# Production / build output
-dist/
-
-# Test artifacts
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
 .pytest_cache/
 .coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+pip-wheel-metadata/
+.eggs/
+*.egg-info/
+site/
 
-# Database files
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+.virtualenv/
+
+# Node dependencies and generated output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+coverage/
+**/coverage/
+*.tsbuildinfo
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# This project has no Node package in backend; ignore accidental npm metadata there.
+/backend/package.json
+/backend/package-lock.json
+/backend/npm-shrinkwrap.json
+
+# Local databases and SQLite sidecars
 *.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db-journal
+*.sqlite-journal
 
-# Uploads and User Data
-uploads/evidence/*
-!uploads/evidence/.gitkeep
-uploads/reports/*
-!uploads/reports/.gitkeep
-backend/veridact.db*
+# Uploaded evidence, generated reports, and other runtime data
+/uploads/evidence/**
+!/uploads/evidence/.gitkeep
+/uploads/reports/**
+!/uploads/reports/.gitkeep
+/backend/uploads/evidence/**
+!/backend/uploads/evidence/.gitkeep
+/backend/uploads/reports/**
+!/backend/uploads/reports/.gitkeep
+
+# Logs, temporary files, and editor/OS metadata
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
 .git.bak/

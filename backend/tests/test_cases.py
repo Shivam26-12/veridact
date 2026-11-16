@@ -308,6 +308,73 @@ def test_assigned_investigator_can_update_status(
     assert response.json()["status"] == "in_progress"
 
 
+def test_investigator_submits_completed_case_for_admin_review(
+    client, users, case_factory, investigator_headers
+):
+    case = case_factory(assignee=users["inv1"], status="in_progress")
+
+    response = client.patch(
+        f"/api/cases/{case.id}",
+        json={"status": "under_review"},
+        headers=investigator_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "under_review"
+
+
+def test_investigator_cannot_mark_case_resolved(
+    client, users, case_factory, investigator_headers
+):
+    case = case_factory(assignee=users["inv1"], status="in_progress")
+
+    response = client.patch(
+        f"/api/cases/{case.id}",
+        json={"status": "resolved"},
+        headers=investigator_headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_admin_returns_resolution_with_required_reason(
+    client, users, case_factory, admin_headers
+):
+    case = case_factory(assignee=users["inv1"], status="under_review")
+
+    missing_reason = client.post(
+        f"/api/cases/{case.id}/review",
+        json={"decision": "return", "reason": "  "},
+        headers=admin_headers,
+    )
+    returned = client.post(
+        f"/api/cases/{case.id}/review",
+        json={"decision": "return", "reason": "Attach the updated impact analysis."},
+        headers=admin_headers,
+    )
+    detail = client.get(f"/api/cases/{case.id}", headers=admin_headers)
+
+    assert missing_reason.status_code == 422
+    assert returned.status_code == 200
+    assert returned.json()["status"] == "in_progress"
+    assert "Attach the updated impact analysis." in detail.json()["notes"][0]["content"]
+
+
+def test_admin_approves_resolution_only_after_review(
+    client, users, case_factory, admin_headers
+):
+    case = case_factory(assignee=users["inv1"], status="under_review")
+
+    response = client.post(
+        f"/api/cases/{case.id}/review",
+        json={"decision": "approve"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "resolved"
+
+
 def test_assigned_investigator_can_triage_severity(
     client, users, case_factory, investigator_headers
 ):
@@ -449,12 +516,31 @@ def test_every_documented_status_is_accepted(
     client, users, case_factory, admin_headers, status
 ):
     # Arrange
-    case = case_factory(assignee=users["inv1"])
+    case = case_factory(
+        assignee=users["inv1"],
+        status="under_review" if status == "resolved" else None,
+    )
+
+    if status == "withdrawn":
+        response = client.patch(
+            f"/api/cases/{case.id}",
+            json={"status": status},
+            headers=admin_headers,
+        )
+        assert response.status_code == 403
+        return
 
     # Act
-    response = client.patch(
-        f"/api/cases/{case.id}", json={"status": status}, headers=admin_headers
-    )
+    if status == "resolved":
+        response = client.post(
+            f"/api/cases/{case.id}/review",
+            json={"decision": "approve"},
+            headers=admin_headers,
+        )
+    else:
+        response = client.patch(
+            f"/api/cases/{case.id}", json={"status": status}, headers=admin_headers
+        )
 
     # Assert
     assert response.status_code == 200
