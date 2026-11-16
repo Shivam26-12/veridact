@@ -1,12 +1,16 @@
 // ============================================================
-// DashboardPage — Role-specific overview dashboard
+// DashboardPage — Role-specific overview dashboard (live API)
 // ============================================================
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FolderOpen, Clock, CheckCircle, AlertTriangle, Activity,
-  Plus, ArrowRight, TrendingUp, Users, FileText
+  Plus, ArrowRight, TrendingUp, Users, FileText, Loader2
 } from 'lucide-react'
-import { MOCK_CASES } from '@/lib/mockData'
+import { caseService } from '@/services/caseService'
+import { adminService } from '@/services/adminService'
+import type { Case } from '@/types'
+import type { AnalyticsSummary } from '@/types/api.types'
 import type { UserRole } from '@/types/constants'
 
 function getCurrentUser() {
@@ -47,22 +51,62 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const user = getCurrentUser()
   const role: UserRole = user.role ?? 'investigator'
+  const isAdminOrSupervisor = role === 'super_admin' || role === 'supervisor'
 
-  const recentCases = MOCK_CASES.slice(0, 4)
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
+  const [recentCases, setRecentCases] = useState<Case[]>([])
+  const [myCases, setMyCases] = useState<Case[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const stats = role === 'super_admin' || role === 'supervisor'
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      try {
+        if (isAdminOrSupervisor) {
+          // Load analytics summary + recent incidents from analytics endpoint
+          const [analyticsData, casesData] = await Promise.all([
+            adminService.getAnalytics(),
+            caseService.getCases({ page: 1, size: 5 }),
+          ])
+          if (!cancelled) {
+            setAnalytics(analyticsData)
+            setRecentCases(casesData.items)
+          }
+        } else {
+          // Investigator: load their assigned cases
+          const casesData = await caseService.getCases({ page: 1, size: 5 })
+          if (!cancelled) setMyCases(casesData.items)
+        }
+      } catch (e) {
+        console.error('Dashboard load error:', e)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [isAdminOrSupervisor])
+
+  const displayCases = isAdminOrSupervisor ? recentCases : myCases
+
+  const stats = isAdminOrSupervisor && analytics
     ? [
-        { label: 'Total Cases', value: MOCK_CASES.length, icon: FolderOpen, variant: 'default' as const, trend: '+3 this week' },
-        { label: 'Pending Review', value: MOCK_CASES.filter(c => c.status === 'pending').length, icon: Clock, variant: 'warning' as const },
-        { label: 'Analysis Complete', value: MOCK_CASES.filter(c => c.status === 'analysis_complete' || c.status === 'report_generated').length, icon: CheckCircle, variant: 'success' as const },
-        { label: 'Critical Priority', value: MOCK_CASES.filter(c => c.priority === 'critical').length, icon: AlertTriangle, variant: 'danger' as const },
+        { label: 'Total Incidents', value: analytics.total_incidents, icon: FolderOpen, variant: 'default' as const },
+        { label: 'Open Incidents', value: analytics.open_cases, icon: Clock, variant: 'warning' as const },
+        { label: 'Resolved', value: analytics.resolved_cases, icon: CheckCircle, variant: 'success' as const },
+        { label: 'Critical', value: analytics.critical_count, icon: AlertTriangle, variant: 'danger' as const },
       ]
     : [
-        { label: 'My Cases', value: MOCK_CASES.filter(c => c.assigned_to === user.id).length || 3, icon: FolderOpen, variant: 'default' as const },
-        { label: 'In Review', value: 1, icon: Activity, variant: 'warning' as const },
-        { label: 'Completed', value: 2, icon: CheckCircle, variant: 'success' as const },
-        { label: 'Reports Generated', value: 1, icon: FileText, variant: 'default' as const },
+        { label: 'My Cases', value: myCases.length, icon: FolderOpen, variant: 'default' as const },
+        { label: 'In Progress', value: myCases.filter(c => c.status === 'in_progress').length, icon: Activity, variant: 'warning' as const },
+        { label: 'Resolved', value: myCases.filter(c => c.status === 'resolved').length, icon: CheckCircle, variant: 'success' as const },
+        { label: 'High Severity', value: myCases.filter(c => c.severity === 'high' || c.severity === 'critical').length, icon: AlertTriangle, variant: 'danger' as const },
       ]
+
+  const unassignedCount = isAdminOrSupervisor
+    ? displayCases.filter(c => !c.assigned_to).length
+    : 0
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -82,25 +126,36 @@ export default function DashboardPage() {
           className="btn-secondary gap-2 hidden sm:flex"
         >
           <Plus className="w-4 h-4" />
-          New Case
+          Report Incident
         </button>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(stat => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="card-base p-6 animate-pulse">
+              <div className="h-4 bg-slate-700 rounded w-2/3 mb-4" />
+              <div className="h-8 bg-slate-700 rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map(stat => (
+            <StatCard key={stat.label} {...stat} />
+          ))}
+        </div>
+      )}
 
       {/* Alert: unassigned cases (supervisor/admin only) */}
-      {(role === 'supervisor' || role === 'super_admin') && MOCK_CASES.filter(c => !c.assigned_to).length > 0 && (
+      {!loading && unassignedCount > 0 && (
         <div className="card-base border-l-4 border-l-status-pending bg-amber-400/5 p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-status-pending shrink-0" />
             <div>
               <p className="text-body-sm font-semibold text-text-primary">
-                {MOCK_CASES.filter(c => !c.assigned_to).length} unassigned case(s)
+                {unassignedCount} unassigned incident(s)
               </p>
               <p className="text-caption text-text-muted">Assign to investigators to begin processing.</p>
             </div>
@@ -114,64 +169,76 @@ export default function DashboardPage() {
       {/* Recent cases */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-h4 font-semibold text-text-primary">Recent Cases</h2>
+          <h2 className="text-h4 font-semibold text-text-primary">Recent Incidents</h2>
           <button onClick={() => navigate('/dashboard/cases')} className="text-body-sm text-accent-primary hover:text-accent-hover transition-colors flex items-center gap-1">
             View all <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
         <div className="card-base overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="table-header">
-                <th className="text-left px-4 py-3">Case Number</th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">Type</th>
-                <th className="text-left px-4 py-3 hidden sm:table-cell">Priority</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentCases.map(c => (
-                <tr
-                  key={c.id}
-                  id={`dashboard-case-${c.id}`}
-                  className="table-row"
-                  onClick={() => navigate(`/dashboard/cases/${c.id}`)}
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-mono-data text-body-sm text-accent-primary">{c.case_number}</span>
-                    <p className="text-caption text-text-muted truncate max-w-[200px]">{c.title}</p>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-caption text-text-secondary capitalize">{c.complaint_type.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`badge-base border text-caption ${
-                      c.priority === 'critical' ? 'text-verdict-fake border-red-400/30 bg-red-400/10' :
-                      c.priority === 'high' ? 'text-status-pending border-amber-400/30 bg-amber-400/10' :
-                      'text-text-muted border-surface-border bg-surface-elevated'
-                    }`}>{c.priority}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`badge-base border text-caption ${
-                      c.status === 'pending' ? 'text-status-pending border-amber-400/30 bg-amber-400/10' :
-                      c.status === 'in_review' ? 'text-status-review border-blue-400/30 bg-blue-400/10' :
-                      c.status === 'analysis_complete' ? 'text-status-complete border-emerald-400/30 bg-emerald-400/10' :
-                      'text-text-muted border-surface-border'
-                    }`}>{c.status.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-caption text-text-muted">{new Date(c.updated_at).toLocaleDateString()}</span>
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-12 gap-2 text-text-muted">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-body-sm">Loading incidents...</span>
+            </div>
+          ) : displayCases.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderOpen className="w-8 h-8 text-text-disabled mx-auto mb-2" />
+              <p className="text-body-sm text-text-muted">No incidents found</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="table-header">
+                  <th className="text-left px-4 py-3">Incident</th>
+                  <th className="text-left px-4 py-3 hidden md:table-cell">Type</th>
+                  <th className="text-left px-4 py-3 hidden sm:table-cell">Severity</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3 hidden lg:table-cell">Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {displayCases.map(c => (
+                  <tr
+                    key={c.id}
+                    id={`dashboard-case-${c.id}`}
+                    className="table-row"
+                    onClick={() => navigate(`/dashboard/cases/${c.id}`)}
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-mono-data text-body-sm text-accent-primary">{c.case_number}</span>
+                      <p className="text-caption text-text-muted truncate max-w-[200px]">{c.title}</p>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span className="text-caption text-text-secondary capitalize">{(c.incident_type ?? '').replace(/_/g, ' ')}</span>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className={`badge-base border text-caption ${
+                        c.severity === 'critical' ? 'text-verdict-fake border-red-400/30 bg-red-400/10' :
+                        c.severity === 'high' ? 'text-status-pending border-amber-400/30 bg-amber-400/10' :
+                        'text-text-muted border-surface-border bg-surface-elevated'
+                      }`}>{c.severity}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`badge-base border text-caption ${
+                        c.status === 'open' ? 'text-status-pending border-amber-400/30 bg-amber-400/10' :
+                        c.status === 'in_progress' ? 'text-status-review border-blue-400/30 bg-blue-400/10' :
+                        c.status === 'under_review' ? 'text-status-complete border-emerald-400/30 bg-emerald-400/10' :
+                        'text-text-muted border-surface-border'
+                      }`}>{c.status.replace(/_/g, ' ')}</span>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <span className="text-caption text-text-muted">{new Date(c.updated_at).toLocaleDateString()}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       {/* Quick actions */}
-      {(role === 'super_admin') && (
+      {role === 'super_admin' && (
         <div>
           <h2 className="text-h4 font-semibold text-text-primary mb-4">Admin Quick Access</h2>
           <div className="grid grid-cols-3 gap-4">

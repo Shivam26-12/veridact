@@ -2,25 +2,32 @@
 // caseService — Case management API calls
 // ============================================================
 import apiClient from './apiClient'
-import type { Case, CreateCasePayload, UpdateCasePayload, PaginatedResponse } from '@/types'
+import type { Case, CaseDetail, CreateCasePayload, UpdateCasePayload, PaginatedResponse } from '@/types'
 
 export interface CaseFilters {
   status?: string
-  complaint_type?: string
-  priority?: string
+  incident_type?: string
+  severity?: string
   assigned_to?: string
+  search?: string
   page?: number
   size?: number
+  limit?: number
 }
 
 export const caseService = {
   async getCases(filters: CaseFilters = {}): Promise<PaginatedResponse<Case>> {
-    const response = await apiClient.get<PaginatedResponse<Case>>('/cases', { params: filters })
+    const { size, limit, ...rest } = filters
+    const params = {
+      ...rest,
+      limit: limit ?? size ?? 20,
+    }
+    const response = await apiClient.get<PaginatedResponse<Case>>('/cases', { params })
     return response.data
   },
 
-  async getCase(caseId: string): Promise<Case> {
-    const response = await apiClient.get<Case>(`/cases/${caseId}`)
+  async getCase(caseId: string): Promise<CaseDetail> {
+    const response = await apiClient.get<CaseDetail>(`/cases/${caseId}`)
     return response.data
   },
 
@@ -47,6 +54,30 @@ export const caseService = {
 
   async getPublicCaseStatus(caseNumber: string) {
     const response = await apiClient.get(`/public/cases/${caseNumber}`)
+    return response.data
+  },
+
+  async getTimeline(caseId: string) {
+    const response = await apiClient.get<Array<{
+      id: string
+      action: string
+      performed_by_id?: string
+      performer_name?: string
+      notes?: string
+      ip_address?: string
+      timestamp?: string
+    }>>(`/incidents/${caseId}/timeline`)
+    return response.data
+  },
+
+  async logResponseAction(caseId: string, action: string, notes?: string) {
+    const response = await apiClient.post<{
+      message: string
+      case_id: string
+      status: string
+      response_status: string
+      custody_log_id?: string
+    }>(`/incidents/${caseId}/response`, { action, notes })
     return response.data
   },
 }

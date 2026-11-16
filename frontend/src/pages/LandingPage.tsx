@@ -1,54 +1,54 @@
 // ============================================================
-// LandingPage — Public hero + features landing page
+// LandingPage — Cybersecurity Incident Management landing page
 // ============================================================
 import { Link } from 'react-router-dom'
-import { Shield, ArrowRight, Eye, FileSearch, Lock, CheckCircle, Zap, Users } from 'lucide-react'
+import { Shield, ArrowRight, AlertTriangle, FileSearch, Lock, CheckCircle, Activity, Users } from 'lucide-react'
 
 const STATS = [
-  { label: 'Cases Analyzed', value: '2,847' },
-  { label: 'Deepfakes Detected', value: '94.2%', subtitle: 'accuracy' },
-  { label: 'Reports Generated', value: '1,203' },
-  { label: 'Institutions Served', value: '37' },
+  { label: 'Incidents Reported', value: '1,284' },
+  { label: 'Avg. Response Time', value: '2.4h' },
+  { label: 'Incidents Resolved', value: '94%' },
+  { label: 'Organizations Served', value: '37' },
 ]
 
 const FEATURES = [
   {
-    icon: Eye,
-    title: 'Deepfake Detection',
-    description: 'AI-powered analysis detects manipulated images and videos with 94%+ accuracy using facial artifact analysis.',
+    icon: AlertTriangle,
+    title: 'Incident Reporting',
+    description: 'Quickly report cybersecurity incidents — phishing, ransomware, data breaches, DDoS attacks, and more through a guided submission wizard.',
+  },
+  {
+    icon: Activity,
+    title: 'Severity Assessment',
+    description: 'Automatic severity classification (Low → Critical) with structured triage to prioritize resources and escalate high-impact incidents.',
   },
   {
     icon: FileSearch,
-    title: 'Document Forensics',
-    description: 'Identify forged documents, altered certificates, and synthetic identity materials submitted as evidence.',
-  },
-  {
-    icon: Zap,
-    title: 'Voice Clone Analysis',
-    description: 'Spectral analysis detects AI-cloned audio used in scams, extortion, and impersonation attacks.',
+    title: 'Investigation Tracking',
+    description: 'Assign incidents to investigators, track evidence, add investigation notes, and maintain a full chain-of-custody audit log.',
   },
   {
     icon: Lock,
-    title: 'Chain of Custody',
-    description: 'Every access, analysis, and action is cryptographically logged with SHA-256 hashes for court admissibility.',
+    title: 'Response Workflows',
+    description: 'Structured response stages: Contain → Eradicate → Recover → Notify. Each action is logged with timestamps for accountability.',
   },
   {
     icon: CheckCircle,
-    title: 'Forensic Reports',
-    description: 'Generate court-ready PDF reports with AI verdict, confidence score, analysis timeline, and custody log.',
+    title: 'Audit Logs',
+    description: 'Every action is immutably logged — who did what, when, and why. Full chain of custody for compliance and post-incident review.',
   },
   {
     icon: Users,
     title: 'Role-Based Access',
-    description: 'Investigators, supervisors, and admins each see only what they need — nothing more, nothing less.',
+    description: 'Investigators, supervisors, and admins each operate within their permission boundary. Citizens can report and track their own incidents.',
   },
 ]
 
 const HOW_IT_WORKS = [
-  { step: '01', title: 'Submit Evidence', desc: 'Citizens submit suspicious media through our secure wizard. No login required.' },
-  { step: '02', title: 'AI Analysis', desc: 'Our forensic AI models analyze for deepfake artifacts, inconsistencies, and manipulation.' },
-  { step: '03', title: 'Verdict Issued', desc: 'Investigators review the AI verdict and confidence score, then take action.' },
-  { step: '04', title: 'Report & Refer', desc: 'Generate a tamper-proof forensic report and refer the case to the appropriate authority.' },
+  { step: '01', title: 'Report Incident', desc: 'Citizens or staff report a cybersecurity incident through our secure guided wizard. No login required.' },
+  { step: '02', title: 'Severity Triage', desc: 'The system assigns a severity level. Supervisors assign the incident to an investigator for immediate action.' },
+  { step: '03', title: 'Investigate & Respond', desc: 'Investigators collect evidence, log response actions, and progress through contain → eradicate → recover stages.' },
+  { step: '04', title: 'Resolve & Report', desc: 'Generate a comprehensive incident report with full timeline, evidence chain, and post-incident recommendations.' },
 ]
 
 export default function LandingPage() {
@@ -65,29 +65,29 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-primary/30 bg-accent-subtle text-caption text-accent-primary font-semibold uppercase tracking-widest mb-8">
             <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
-            AI Forensic Evidence Platform
+            Cybersecurity Incident Management
           </div>
 
           {/* Headline */}
           <h1 className="text-display font-bold text-text-primary mb-6 leading-tight">
-            See Through the Fake.{' '}
-            <span className="text-gradient-emerald">Secure the Truth.</span>
+            Report. Investigate.{' '}
+            <span className="text-gradient-emerald">Resolve.</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-body-lg text-text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
-            VERIDACT is Nepal's first AI-powered platform for detecting deepfakes, voice clones,
-            and forged documents. Built for the Nepal Cyber Bureau to combat digital fraud.
+            VERIDACT is a comprehensive cybersecurity incident reporting and management platform.
+            From phishing to ransomware — report, track, investigate, and respond with full audit trails.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/submit"
-              id="hero-report-crime"
+              id="hero-report-incident"
               className="btn-primary px-6 py-3 text-body-sm gap-2"
             >
-              Report AI Crime
+              Report an Incident
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
@@ -95,14 +95,14 @@ export default function LandingPage() {
               id="hero-track-case"
               className="btn-secondary px-6 py-3 text-body-sm"
             >
-              Track Your Case
+              Track Your Incident
             </Link>
           </div>
 
           {/* Trust line */}
           <p className="mt-8 text-caption text-text-disabled flex items-center justify-center gap-2">
             <Shield className="w-3.5 h-3.5 text-accent-primary" />
-            End-to-end encrypted · SHA-256 chain of custody · Court-ready reports
+            End-to-end encrypted · Full audit log · Chain of custody
           </p>
         </div>
       </section>
@@ -114,7 +114,6 @@ export default function LandingPage() {
             <div key={stat.label} className="text-center">
               <div className="text-h2 font-bold text-accent-primary font-mono-data">{stat.value}</div>
               <div className="text-caption text-text-muted mt-1">{stat.label}</div>
-              {stat.subtitle && <div className="text-caption text-text-disabled">{stat.subtitle}</div>}
             </div>
           ))}
         </div>
@@ -124,8 +123,8 @@ export default function LandingPage() {
       <section className="py-20 px-6 bg-surface-base">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-h2 font-bold text-text-primary mb-3">Forensic Capabilities</h2>
-            <p className="text-body text-text-muted">Built for investigators. Trusted by institutions.</p>
+            <h2 className="text-h2 font-bold text-text-primary mb-3">Platform Capabilities</h2>
+            <p className="text-body text-text-muted">Built for security teams. Trusted by organizations.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((feature) => (
@@ -149,12 +148,11 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-h2 font-bold text-text-primary mb-3">How It Works</h2>
-            <p className="text-body text-text-muted">From submission to forensic verdict in minutes.</p>
+            <p className="text-body text-text-muted">From incident report to full resolution — structured and auditable.</p>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
             {HOW_IT_WORKS.map((step, i) => (
               <div key={step.step} className="relative">
-                {/* Connector line */}
                 {i < HOW_IT_WORKS.length - 1 && (
                   <div className="hidden md:block absolute top-5 left-full w-full h-px bg-surface-border -translate-y-1/2 z-0" />
                 )}
@@ -177,15 +175,15 @@ export default function LandingPage() {
           <div className="card-base card-accent p-10">
             <Shield className="w-10 h-10 text-accent-primary mx-auto mb-4" />
             <h2 className="text-h2 font-bold text-text-primary mb-4">
-              Been a victim of digital fraud?
+              Experiencing a security incident?
             </h2>
             <p className="text-body text-text-muted mb-8">
-              Submit your evidence securely. No login required. We'll analyze it and provide
-              a forensic verdict with full chain of custody.
+              Report it immediately. No login required. Our team will assess the severity,
+              assign an investigator, and guide you through the response process.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/submit" id="cta-report" className="btn-primary px-8 py-3">
-                Submit Evidence Now
+                Report Incident Now
               </Link>
               <Link to="/login" id="cta-login" className="btn-ghost px-8 py-3">
                 Investigator Login →

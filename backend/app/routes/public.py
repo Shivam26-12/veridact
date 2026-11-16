@@ -16,10 +16,10 @@ router = APIRouter(prefix="/api/public", tags=["Public"])
 
 # Human-friendly status labels for citizens
 CITIZEN_STATUS_LABELS: dict[str, str] = {
-    "pending": "Received — Awaiting Review",
-    "in_review": "Under Active Investigation",
-    "analysis_complete": "Analysis Complete",
-    "report_generated": "Report Generated",
+    "open": "Received — Awaiting Assignment",
+    "in_progress": "Under Active Investigation",
+    "under_review": "Under Supervisory Review",
+    "resolved": "Incident Resolved",
     "closed": "Case Closed",
     "referred": "Referred to Authority",
 }
@@ -54,7 +54,7 @@ async def track_case(
         "case_number": case.case_number,
         "status": case.status,
         "status_label": CITIZEN_STATUS_LABELS.get(case.status, case.status),
-        "complaint_type": case.complaint_type,
+        "incident_type": case.incident_type,
         "created_at": case.created_at.isoformat() if case.created_at else None,
         "updated_at": case.updated_at.isoformat() if case.updated_at else None,
         "public_notes": [note.content for note in public_notes],

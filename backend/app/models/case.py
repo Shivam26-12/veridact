@@ -1,7 +1,7 @@
 """
 VERIDACT — Case Model
 Table: cases
-Matches Document 05 Section 3 exactly.
+Cybersecurity Incident Reporting and Management System.
 """
 import uuid
 from datetime import datetime
@@ -19,9 +19,9 @@ class Case(Base):
     case_number = Column(String(20), unique=True, nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
-    complaint_type = Column(String(30), nullable=False, index=True)
-    status = Column(String(25), nullable=False, default="pending", index=True)
-    priority = Column(String(10), nullable=False, default="medium", index=True)
+    incident_type = Column(String(30), nullable=False, index=True)
+    status = Column(String(25), nullable=False, default="open", index=True)
+    severity = Column(String(10), nullable=False, default="medium", index=True)
     submitted_by = Column(
         String(36), ForeignKey("users.id"), nullable=True, index=True
     )
@@ -31,6 +31,8 @@ class Case(Base):
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(20), nullable=True)
     location = Column(String(200), nullable=True)
+    affected_systems = Column(String(500), nullable=True)
+    response_status = Column(String(30), nullable=True, default="pending_response")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     closed_at = Column(DateTime, nullable=True)
@@ -52,4 +54,4 @@ class Case(Base):
     )
 
     def __repr__(self):
-        return f"<Case {self.case_number} ({self.status})>"
+        return f"<Incident {self.case_number} ({self.incident_type}) [{self.status}]>"

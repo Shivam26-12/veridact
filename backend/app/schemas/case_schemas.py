@@ -7,29 +7,30 @@ from typing import Optional, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.constants import COMPLAINT_TYPES, CASE_STATUSES, PRIORITY_LEVELS
+from app.constants import INCIDENT_TYPES, CASE_STATUSES, SEVERITY_LEVELS
 
 
 class CreateCaseRequest(BaseModel):
     """Create case request."""
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=10, max_length=5000)
-    complaint_type: Literal[
-        "deepfake_image", "deepfake_video", "voice_clone",
-        "fake_document", "synthetic_identity", "scam", "other"
+    incident_type: Literal[
+        "phishing", "ransomware", "data_breach", "ddos", "malware",
+        "unauthorized_access", "insider_threat", "social_engineering",
+        "web_application_attack", "network_intrusion", "other"
     ]
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     location: Optional[str] = None
+    affected_systems: Optional[str] = None
 
 
 class UpdateCaseRequest(BaseModel):
     """Update case request — all fields optional."""
     status: Optional[Literal[
-        "pending", "in_review", "analysis_complete",
-        "report_generated", "closed", "referred"
+        "open", "in_progress", "under_review", "resolved", "closed", "referred"
     ]] = None
-    priority: Optional[Literal["low", "medium", "high", "critical"]] = None
+    severity: Optional[Literal["low", "medium", "high", "critical"]] = None
     assigned_to: Optional[str] = None
     note: Optional[str] = None
 
@@ -52,14 +53,16 @@ class CaseResponse(BaseModel):
     case_number: str
     title: str
     description: str
-    complaint_type: str
+    incident_type: str
     status: str
-    priority: str
+    severity: str
     submitted_by: Optional[str] = None
     assigned_to: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     location: Optional[str] = None
+    affected_systems: Optional[str] = None
+    response_status: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None

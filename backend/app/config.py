@@ -1,5 +1,6 @@
 """
 VERIDACT — Application Configuration
+Cybersecurity Incident Reporting and Management System.
 Reads all environment variables with sensible defaults.
 """
 import os
@@ -27,19 +28,6 @@ JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "8"))
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "../uploads")
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
-
-# AI Model Configuration
-DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-IMAGE_MODEL_NAME = os.getenv("IMAGE_MODEL_NAME", "prithivMLmods/Deepfake-Detect-Siglip2")
-IMAGE_FALLBACK_MODEL = os.getenv("IMAGE_FALLBACK_MODEL", "Wvolf/ViT_Deepfake_Detection")
-HF_HUB_OFFLINE = os.getenv("HF_HUB_OFFLINE", "false").lower() == "true"
-
-# Optional
-HF_TOKEN_OPTIONAL = os.getenv("HF_TOKEN_OPTIONAL", "")
-GEMINI_API_KEY_OPTIONAL = os.getenv("GEMINI_API_KEY_OPTIONAL", "")
-
-# Tesseract OCR
-TESSERACT_CMD = os.getenv("TESSERACT_CMD", "tesseract")
 
 # Report Generation
 REPORT_DIR = os.getenv("REPORT_DIR", "../uploads/reports")

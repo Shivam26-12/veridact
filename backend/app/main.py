@@ -15,7 +15,7 @@ from app.routes import auth, cases, evidence, analysis, reports, custody, admin,
 # Create FastAPI application
 app = FastAPI(
     title=config.APP_NAME,
-    description="AI Forensic Evidence Platform — See Through the Fake. Secure the Truth.",
+    description="Cybersecurity Incident Reporting and Management System — Report. Track. Resolve.",
     version=config.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -46,7 +46,7 @@ async def startup_event():
     """Create all database tables and upload directories on startup."""
     # Import all models so Base.metadata knows about them
     try:
-        from app.models import User, Case, Evidence, AnalysisResult, CustodyLog, Report, CaseNote  # noqa: F401
+        from app.models import User, Case, Evidence, CustodyLog, Report, CaseNote  # noqa: F401
     except ImportError:
         pass  # Models may not exist yet during AG-02-A phase
 
@@ -55,7 +55,6 @@ async def startup_event():
     # Create upload directories if missing
     upload_dirs = [
         os.path.join(config.UPLOAD_DIR, "evidence"),
-        os.path.join(config.UPLOAD_DIR, "heatmaps"),
         os.path.join(config.UPLOAD_DIR, "reports"),
     ]
     for directory in upload_dirs:

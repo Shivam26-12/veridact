@@ -1,34 +1,39 @@
 // ============================================================
-// SubmitPage — Citizen Evidence Submission Wizard (4 steps)
-// Wired to real backend API in Phase 4.
+// SubmitPage — Citizen Incident Submission Wizard (4 steps)
 // ============================================================
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Image, Video, Mic, FileText, User, HelpCircle,
+  Mail, Lock, Database, Zap, Bug, UserX, UserCheck, Globe, Network, Users, HelpCircle,
   Shield, CheckCircle, Upload, Loader2, Copy, Check,
   ArrowRight, ArrowLeft, AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ComplaintType } from '@/types/constants'
+import type { IncidentType } from '@/types/constants'
 import { caseService } from '@/services/caseService'
 import { evidenceService } from '@/services/evidenceService'
 
-const COMPLAINT_OPTIONS: { type: ComplaintType; label: string; desc: string; icon: React.ComponentType<{className?: string}> }[] = [
-  { type: 'deepfake_image', label: 'Deepfake Image', desc: 'AI-generated or manipulated photo', icon: Image },
-  { type: 'deepfake_video', label: 'Deepfake Video', desc: 'Fabricated or face-swapped video', icon: Video },
-  { type: 'voice_clone', label: 'Voice Clone', desc: 'AI-cloned audio/voice impersonation', icon: Mic },
-  { type: 'fake_document', label: 'Fake Document', desc: 'Forged or digitally altered document', icon: FileText },
-  { type: 'synthetic_identity', label: 'Synthetic Identity', desc: 'AI-generated fake persona/profile', icon: User },
-  { type: 'other', label: 'Other', desc: 'Other type of digital fraud', icon: HelpCircle },
+const INCIDENT_OPTIONS: { type: IncidentType; label: string; desc: string; icon: React.ComponentType<{className?: string}> }[] = [
+  { type: 'phishing', label: 'Phishing Attack', desc: 'Fraudulent emails, SMS, or websites stealing credentials', icon: Mail },
+  { type: 'ransomware', label: 'Ransomware', desc: 'Files encrypted, ransom demanded', icon: Lock },
+  { type: 'data_breach', label: 'Data Breach', desc: 'Unauthorized access or exfiltration of sensitive data', icon: Database },
+  { type: 'ddos', label: 'DDoS Attack', desc: 'Service disruption from volumetric attack', icon: Zap },
+  { type: 'malware', label: 'Malware Infection', desc: 'Virus, trojan, spyware, or keylogger detected', icon: Bug },
+  { type: 'unauthorized_access', label: 'Unauthorized Access', desc: 'Intrusion into systems or accounts without permission', icon: UserX },
+  { type: 'insider_threat', label: 'Insider Threat', desc: 'Malicious or accidental action by internal user', icon: UserCheck },
+  { type: 'web_application_attack', label: 'Web App Attack', desc: 'SQL injection, XSS, CSRF, or API abuse', icon: Globe },
+  { type: 'network_intrusion', label: 'Network Intrusion', desc: 'Unauthorized lateral movement in network', icon: Network },
+  { type: 'social_engineering', label: 'Social Engineering', desc: 'Manipulation tactics to gain access or information', icon: Users },
+  { type: 'other', label: 'Other', desc: 'Other cybersecurity incident type', icon: HelpCircle },
 ]
 
-const STEPS = ['Complaint Type', 'Description', 'Upload File', 'Review & Submit']
+const STEPS = ['Incident Type', 'Description', 'Upload File', 'Review & Submit']
 
 interface FormData {
-  complaint_type: ComplaintType | ''
+  incident_type: IncidentType | ''
   title: string
   description: string
+  affected_systems: string
   contact_email: string
   contact_phone: string
   location: string
@@ -38,7 +43,7 @@ interface FormData {
 export default function SubmitPage() {
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState<FormData>({
-    complaint_type: '', title: '', description: '',
+    incident_type: '', title: '', description: '', affected_systems: '',
     contact_email: '', contact_phone: '', location: '', file: null,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,14 +70,15 @@ export default function SubmitPage() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      // Step 1: Create the case
+      // Step 1: Create the incident case
       const createdCase = await caseService.createCaseAnonymous({
         title: formData.title,
         description: formData.description,
-        complaint_type: formData.complaint_type as ComplaintType,
+        incident_type: formData.incident_type as IncidentType,
         contact_email: formData.contact_email || undefined,
         contact_phone: formData.contact_phone || undefined,
         location: formData.location || undefined,
+        affected_systems: formData.affected_systems || undefined,
       })
 
       // Step 2: Upload the evidence file
@@ -109,12 +115,12 @@ export default function SubmitPage() {
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
         <div className="card-base p-10">
           <CheckCircle className="w-16 h-16 text-accent-primary mx-auto mb-6" />
-          <h1 className="text-h2 font-bold text-text-primary mb-2">Complaint Submitted</h1>
-          <p className="text-body text-text-muted mb-8">Your evidence has been securely received and logged.</p>
+          <h1 className="text-h2 font-bold text-text-primary mb-2">Incident Reported</h1>
+          <p className="text-body text-text-muted mb-8">Your incident has been securely received, logged, and is pending triage by our security team.</p>
 
           <div className="bg-slate-950 rounded-lg p-6 text-left mb-6 space-y-4">
             <div>
-              <p className="text-caption text-text-muted uppercase tracking-widest mb-1">Case Number</p>
+              <p className="text-caption text-text-muted uppercase tracking-widest mb-1">Incident Number</p>
               <div className="flex items-center justify-between gap-3">
                 <span className="font-mono-data text-h3 font-bold text-accent-primary">{submitted.caseNumber}</span>
                 <button onClick={() => handleCopy(submitted.caseNumber)} className="btn-ghost p-1.5">
@@ -122,17 +128,19 @@ export default function SubmitPage() {
                 </button>
               </div>
             </div>
-            <div>
-              <p className="text-caption text-text-muted uppercase tracking-widest mb-1">SHA-256 Hash</p>
-              <p className="hash-display text-[11px]">{submitted.hash}</p>
-            </div>
+            {submitted.hash && (
+              <div>
+                <p className="text-caption text-text-muted uppercase tracking-widest mb-1">SHA-256 Evidence Hash</p>
+                <p className="hash-display text-[11px]">{submitted.hash}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to={`/track/${submitted.caseNumber}`} id="confirmation-track" className="btn-primary">
-              Track My Case <ArrowRight className="w-4 h-4" />
+              Track My Incident <ArrowRight className="w-4 h-4" />
             </Link>
-            <button onClick={() => { setSubmitted(null); setStep(0); setSubmitError(null); setFormData({ complaint_type: '', title: '', description: '', contact_email: '', contact_phone: '', location: '', file: null }) }} className="btn-secondary">
+            <button onClick={() => { setSubmitted(null); setStep(0); setSubmitError(null); setFormData({ incident_type: '', title: '', description: '', affected_systems: '', contact_email: '', contact_phone: '', location: '', file: null }) }} className="btn-secondary">
               Submit Another
             </button>
           </div>
@@ -169,33 +177,33 @@ export default function SubmitPage() {
       </div>
 
       <div className="card-base p-8">
-        {/* Step 1: Complaint Type */}
+        {/* Step 1: Incident Type */}
         {step === 0 && (
           <div className="space-y-6">
-            <h2 className="text-h3 font-bold text-text-primary">What type of AI crime occurred?</h2>
+            <h2 className="text-h3 font-bold text-text-primary">What type of cybersecurity incident occurred?</h2>
             <div className="grid grid-cols-2 gap-3">
-              {COMPLAINT_OPTIONS.map(opt => (
+              {INCIDENT_OPTIONS.map(opt => (
                 <button
                   key={opt.type}
-                  id={`complaint-type-${opt.type}`}
-                  onClick={() => setFormData(prev => ({ ...prev, complaint_type: opt.type }))}
+                  id={`incident-type-${opt.type}`}
+                  onClick={() => setFormData(prev => ({ ...prev, incident_type: opt.type }))}
                   className={cn(
                     'flex flex-col items-start gap-2 p-4 rounded-lg border-2 text-left transition-all duration-150',
-                    formData.complaint_type === opt.type
+                    formData.incident_type === opt.type
                       ? 'border-accent-primary bg-accent-subtle'
                       : 'border-surface-border hover:border-slate-500 hover:bg-surface-elevated'
                   )}
                 >
-                  <opt.icon className={cn('w-5 h-5', formData.complaint_type === opt.type ? 'text-accent-primary' : 'text-text-muted')} />
+                  <opt.icon className={cn('w-5 h-5', formData.incident_type === opt.type ? 'text-accent-primary' : 'text-text-muted')} />
                   <div>
-                    <p className={cn('text-body-sm font-semibold', formData.complaint_type === opt.type ? 'text-accent-primary' : 'text-text-primary')}>{opt.label}</p>
+                    <p className={cn('text-body-sm font-semibold', formData.incident_type === opt.type ? 'text-accent-primary' : 'text-text-primary')}>{opt.label}</p>
                     <p className="text-caption text-text-muted mt-0.5">{opt.desc}</p>
                   </div>
                 </button>
               ))}
             </div>
             <div className="flex justify-end">
-              <button id="step1-next" onClick={handleNext} disabled={!formData.complaint_type} className="btn-primary">
+              <button id="step1-next" onClick={handleNext} disabled={!formData.incident_type} className="btn-primary">
                 Next <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -208,12 +216,16 @@ export default function SubmitPage() {
             <h2 className="text-h3 font-bold text-text-primary">Describe the incident</h2>
             <div>
               <label htmlFor="submit-title" className="block text-body-sm font-medium text-text-secondary mb-1.5">Title <span className="text-red-400">*</span></label>
-              <input id="submit-title" type="text" value={formData.title} onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} className="input-base" placeholder="Brief title for your complaint" minLength={5} maxLength={200} required />
+              <input id="submit-title" type="text" value={formData.title} onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} className="input-base" placeholder="Brief title for the incident" minLength={5} maxLength={200} required />
             </div>
             <div>
               <label htmlFor="submit-description" className="block text-body-sm font-medium text-text-secondary mb-1.5">Description <span className="text-red-400">*</span></label>
-              <textarea id="submit-description" value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input-base min-h-[120px] resize-none" placeholder="Describe what happened, when it occurred, and how you discovered it. (50-2000 characters)" minLength={50} maxLength={2000} required rows={5} />
+              <textarea id="submit-description" value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input-base min-h-[120px] resize-none" placeholder="Describe what happened, when it occurred, and how it was discovered. (50-2000 characters)" minLength={50} maxLength={2000} required rows={5} />
               <p className="text-caption text-text-muted mt-1">{formData.description.length}/2000</p>
+            </div>
+            <div>
+              <label htmlFor="submit-affected-systems" className="block text-body-sm font-medium text-text-secondary mb-1.5">Affected Systems (optional)</label>
+              <input id="submit-affected-systems" type="text" value={formData.affected_systems} onChange={e => setFormData(prev => ({ ...prev, affected_systems: e.target.value }))} className="input-base" placeholder="e.g. Email servers, HR workstations, Customer DB" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -222,12 +234,12 @@ export default function SubmitPage() {
               </div>
               <div>
                 <label htmlFor="submit-phone" className="block text-body-sm font-medium text-text-secondary mb-1.5">Contact Phone (optional)</label>
-                <input id="submit-phone" type="tel" value={formData.contact_phone} onChange={e => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))} className="input-base" placeholder="+977-98XXXXXXXX" />
+                <input id="submit-phone" type="tel" value={formData.contact_phone} onChange={e => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))} className="input-base" placeholder="+1-555-XXXXXXX" />
               </div>
             </div>
             <div>
               <label htmlFor="submit-location" className="block text-body-sm font-medium text-text-secondary mb-1.5">Incident Location (optional)</label>
-              <input id="submit-location" type="text" value={formData.location} onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))} className="input-base" placeholder="City, District, or Platform (e.g. Facebook, Kathmandu)" />
+              <input id="submit-location" type="text" value={formData.location} onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))} className="input-base" placeholder="City, office, or platform where incident occurred" />
             </div>
             <div className="flex justify-between">
               <button onClick={handleBack} className="btn-ghost"><ArrowLeft className="w-4 h-4" /> Back</button>
@@ -257,7 +269,7 @@ export default function SubmitPage() {
                 id="submit-file-input"
                 type="file"
                 className="hidden"
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                accept=".log,.txt,.csv,.jpg,.jpeg,.png,.bmp,.webp,.pcap,.pcapng,.pdf,.docx,.xlsx,.eml,.msg,.zip,.tar,.gz"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f) }}
               />
               {formData.file ? (
@@ -270,8 +282,8 @@ export default function SubmitPage() {
               ) : (
                 <div>
                   <Upload className="w-10 h-10 text-text-muted mx-auto mb-3" />
-                  <p className="text-body font-medium text-text-primary">Drop your file here, or click to browse</p>
-                  <p className="text-body-sm text-text-muted mt-2">Images, videos, audio, PDFs — max 100MB</p>
+                  <p className="text-body font-medium text-text-primary">Drop your evidence file here, or click to browse</p>
+                  <p className="text-body-sm text-text-muted mt-2">Logs, screenshots, PCAPs, documents, emails — max 100MB</p>
                 </div>
               )}
             </div>
@@ -292,9 +304,10 @@ export default function SubmitPage() {
             <h2 className="text-h3 font-bold text-text-primary">Review & Submit</h2>
             <div className="space-y-3">
               {[
-                { label: 'Complaint Type', value: COMPLAINT_OPTIONS.find(o => o.type === formData.complaint_type)?.label },
+                { label: 'Incident Type', value: INCIDENT_OPTIONS.find(o => o.type === formData.incident_type)?.label },
                 { label: 'Title', value: formData.title },
                 { label: 'Description', value: formData.description },
+                { label: 'Affected Systems', value: formData.affected_systems || '—' },
                 { label: 'File', value: formData.file?.name },
                 { label: 'Contact Email', value: formData.contact_email || '—' },
               ].map(row => (
@@ -305,8 +318,8 @@ export default function SubmitPage() {
               ))}
             </div>
             <p className="text-caption text-text-muted">
-              By submitting, you confirm this evidence is genuine and consent to its forensic analysis.
-              All submissions are governed by the Nepal Cyber Bureau Privacy Policy.
+              By submitting, you confirm this incident information is accurate and consent to its review by our Security Operations Center (SOC).
+              All submissions are securely logged with full chain of custody.
             </p>
             {submitError && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
@@ -316,8 +329,8 @@ export default function SubmitPage() {
             )}
             <div className="flex justify-between">
               <button onClick={handleBack} className="btn-ghost"><ArrowLeft className="w-4 h-4" /> Back</button>
-              <button id="submit-complaint" onClick={handleSubmit} disabled={isSubmitting} className="btn-primary px-6">
-                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Securing submission...</> : 'Submit Complaint'}
+              <button id="submit-incident" onClick={handleSubmit} disabled={isSubmitting} className="btn-primary px-6">
+                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Securing submission...</> : 'Submit Incident Report'}
               </button>
             </div>
           </div>

@@ -1,26 +1,25 @@
 // ============================================================
-// CaseListPage — Filterable, paginated case table
+// CaseListPage — Filterable, paginated incident table (live API)
 // ============================================================
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, FolderOpen, X } from 'lucide-react'
-import { MOCK_CASES } from '@/lib/mockData'
-import { cn } from '@/lib/utils'
-import type { CaseStatus, ComplaintType, PriorityLevel } from '@/types/constants'
+import { Search, FolderOpen, X, Loader2, AlertCircle } from 'lucide-react'
+import { useCases } from '@/hooks/useCases'
+import type { CaseStatus, SeverityLevel } from '@/types/constants'
 
-const STATUS_OPTIONS: CaseStatus[] = ['pending', 'in_review', 'analysis_complete', 'report_generated', 'closed', 'referred']
-const PRIORITY_OPTIONS: PriorityLevel[] = ['low', 'medium', 'high', 'critical']
+const STATUS_OPTIONS: CaseStatus[] = ['open', 'in_progress', 'under_review', 'resolved', 'closed', 'referred']
+const SEVERITY_OPTIONS: SeverityLevel[] = ['low', 'medium', 'high', 'critical']
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: 'text-status-pending border-amber-400/30 bg-amber-400/10',
-  in_review: 'text-status-review border-blue-400/30 bg-blue-400/10',
-  analysis_complete: 'text-status-complete border-emerald-400/30 bg-emerald-400/10',
-  report_generated: 'text-status-referred border-purple-400/30 bg-purple-400/10',
+  open: 'text-status-pending border-amber-400/30 bg-amber-400/10',
+  in_progress: 'text-status-review border-blue-400/30 bg-blue-400/10',
+  under_review: 'text-status-complete border-emerald-400/30 bg-emerald-400/10',
+  resolved: 'text-status-referred border-purple-400/30 bg-purple-400/10',
   closed: 'text-status-closed border-slate-400/30 bg-slate-400/10',
   referred: 'text-status-referred border-purple-400/30 bg-purple-400/10',
 }
 
-const PRIORITY_BADGE: Record<string, string> = {
+const SEVERITY_BADGE: Record<string, string> = {
   low: 'text-text-muted border-surface-border',
   medium: 'text-status-review border-blue-400/30 bg-blue-400/10',
   high: 'text-status-pending border-amber-400/30 bg-amber-400/10',
@@ -31,24 +30,28 @@ export default function CaseListPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState('')
+  const [severityFilter, setSeverityFilter] = useState('')
 
-  const filtered = MOCK_CASES.filter(c => {
-    const q = search.toLowerCase()
-    const matchSearch = !q || c.title.toLowerCase().includes(q) || c.case_number.toLowerCase().includes(q)
-    const matchStatus = !statusFilter || c.status === statusFilter
-    const matchPriority = !priorityFilter || c.priority === priorityFilter
-    return matchSearch && matchStatus && matchPriority
+  const { data, isLoading, error } = useCases({
+    status: statusFilter || undefined,
+    severity: severityFilter || undefined,
+    search: search || undefined,
+    page: 1,
+    size: 50,
   })
 
-  const hasFilters = search || statusFilter || priorityFilter
+  const incidents = data?.items ?? []
+  const total = data?.total ?? 0
+  const hasFilters = Boolean(search || statusFilter || severityFilter)
 
   return (
     <div className="space-y-5 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-h2 font-bold text-text-primary">Cases</h1>
-        <p className="text-body-sm text-text-muted mt-1">{MOCK_CASES.length} total cases</p>
+        <h1 className="text-h2 font-bold text-text-primary">Incidents</h1>
+        <p className="text-body-sm text-text-muted mt-1">
+          {isLoading ? 'Loading incidents...' : `${total} incident${total === 1 ? '' : 's'} recorded`}
+        </p>
       </div>
 
       {/* Filter bar */}
@@ -60,7 +63,7 @@ export default function CaseListPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-base pl-10"
-            placeholder="Search by case number or title..."
+            placeholder="Search by incident number or title..."
           />
         </div>
         <select
@@ -73,18 +76,18 @@ export default function CaseListPage() {
           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
         <select
-          id="caselist-priority-filter"
-          value={priorityFilter}
-          onChange={e => setPriorityFilter(e.target.value)}
+          id="caselist-severity-filter"
+          value={severityFilter}
+          onChange={e => setSeverityFilter(e.target.value)}
           className="input-base w-auto"
         >
-          <option value="">All Priorities</option>
-          {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+          <option value="">All Severities</option>
+          {SEVERITY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         {hasFilters && (
           <button
             id="caselist-clear-filters"
-            onClick={() => { setSearch(''); setStatusFilter(''); setPriorityFilter('') }}
+            onClick={() => { setSearch(''); setStatusFilter(''); setSeverityFilter('') }}
             className="btn-ghost text-body-sm gap-1.5"
           >
             <X className="w-3.5 h-3.5" /> Clear
@@ -92,28 +95,43 @@ export default function CaseListPage() {
         )}
       </div>
 
+      {/* Error state */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="text-body-sm">{error}</span>
+        </div>
+      )}
+
       {/* Table */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="card-base p-16 flex flex-col items-center justify-center gap-3 text-text-muted">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-primary" />
+          <p className="text-body-sm">Fetching incidents from database...</p>
+        </div>
+      ) : incidents.length === 0 ? (
         <div className="card-base p-16 text-center">
           <FolderOpen className="w-10 h-10 text-text-disabled mx-auto mb-3" />
-          <p className="text-h4 text-text-primary font-semibold">No cases found</p>
-          <p className="text-body-sm text-text-muted mt-1">Try adjusting your filters.</p>
+          <p className="text-h4 text-text-primary font-semibold">No incidents found</p>
+          <p className="text-body-sm text-text-muted mt-1">
+            {hasFilters ? 'Try adjusting your filters.' : 'No incidents have been submitted yet.'}
+          </p>
         </div>
       ) : (
         <div className="card-base overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="table-header">
-                <th className="text-left px-4 py-3">Case</th>
+                <th className="text-left px-4 py-3">Incident</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Type</th>
-                <th className="text-left px-4 py-3 hidden sm:table-cell">Priority</th>
+                <th className="text-left px-4 py-3 hidden sm:table-cell">Severity</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Assigned To</th>
                 <th className="text-left px-4 py-3 hidden xl:table-cell">Updated</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(c => (
+              {incidents.map(c => (
                 <tr
                   key={c.id}
                   id={`caselist-row-${c.id}`}
@@ -125,10 +143,10 @@ export default function CaseListPage() {
                     <span className="text-caption text-text-muted truncate block max-w-[250px]">{c.title}</span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-caption text-text-secondary capitalize">{c.complaint_type.replace(/_/g, ' ')}</span>
+                    <span className="text-caption text-text-secondary capitalize">{(c.incident_type ?? '').replace(/_/g, ' ')}</span>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`badge-base border ${PRIORITY_BADGE[c.priority] ?? ''}`}>{c.priority}</span>
+                    <span className={`badge-base border ${SEVERITY_BADGE[c.severity] ?? ''}`}>{c.severity}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`badge-base border ${STATUS_BADGE[c.status] ?? ''}`}>{c.status.replace(/_/g, ' ')}</span>

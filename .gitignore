@@ -12,6 +12,10 @@ node_modules/
 # Production / build output
 dist/
 
+# Test artifacts
+.pytest_cache/
+.coverage
+
 # Database files
 *.db
 

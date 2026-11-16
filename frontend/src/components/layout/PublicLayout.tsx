@@ -42,7 +42,7 @@ export default function PublicLayout() {
               to="/track"
               className="text-body-sm text-text-muted hover:text-text-primary transition-colors"
             >
-              Track Case
+              Track Incident
             </Link>
             {isAuthenticated ? (
               <Link
@@ -75,10 +75,10 @@ export default function PublicLayout() {
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-accent-primary" />
             <span className="text-caption text-text-muted font-brand font-semibold">VERIDACT</span>
-            <span className="text-caption text-text-disabled">— Nepal Cyber Bureau</span>
+            <span className="text-caption text-text-disabled">— Security Operations Center</span>
           </div>
           <div className="flex items-center gap-6">
-            <span className="text-caption text-text-disabled">See Through the Fake. Secure the Truth.</span>
+            <span className="text-caption text-text-disabled">Cybersecurity Incident Reporting & Management</span>
             <a
               href="https://github.com/iit2025213-ops/Veridact"
               target="_blank"

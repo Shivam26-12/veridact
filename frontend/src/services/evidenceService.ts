@@ -1,8 +1,8 @@
 // ============================================================
-// evidenceService — Evidence upload & analysis API calls
+// evidenceService — Evidence upload and retrieval API calls
 // ============================================================
 import apiClient from './apiClient'
-import type { Evidence, AnalysisResult } from '@/types'
+import type { Evidence } from '@/types'
 
 export const evidenceService = {
   async uploadEvidence(caseId: string, file: File, onProgress?: (pct: number) => void): Promise<Evidence> {
@@ -22,19 +22,5 @@ export const evidenceService = {
   async getEvidence(evidenceId: string): Promise<Evidence> {
     const response = await apiClient.get<Evidence>(`/evidence/${evidenceId}`)
     return response.data
-  },
-
-  async analyzeEvidence(evidenceId: string): Promise<AnalysisResult> {
-    const response = await apiClient.post<AnalysisResult>(`/evidence/${evidenceId}/analyze`)
-    return response.data
-  },
-
-  async getAnalysisResult(evidenceId: string): Promise<AnalysisResult> {
-    const response = await apiClient.get<AnalysisResult>(`/evidence/${evidenceId}/results`)
-    return response.data
-  },
-
-  getHeatmapUrl(heatmapPath: string): string {
-    return `/api/evidence/heatmap/${heatmapPath}`
   },
 }

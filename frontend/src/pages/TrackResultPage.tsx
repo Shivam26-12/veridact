@@ -11,17 +11,18 @@ interface PublicCase {
   case_number: string
   status: string
   status_label: string
-  complaint_type: string
+  incident_type?: string
+  complaint_type?: string
   created_at: string
   updated_at: string
   public_notes: string[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-status-pending bg-amber-400/10 border-amber-400/30',
-  in_review: 'text-status-review bg-blue-400/10 border-blue-400/30',
-  analysis_complete: 'text-status-complete bg-emerald-400/10 border-emerald-400/30',
-  report_generated: 'text-status-referred bg-purple-400/10 border-purple-400/30',
+  open: 'text-status-pending bg-amber-400/10 border-amber-400/30',
+  in_progress: 'text-status-review bg-blue-400/10 border-blue-400/30',
+  under_review: 'text-status-complete bg-emerald-400/10 border-emerald-400/30',
+  resolved: 'text-status-referred bg-purple-400/10 border-purple-400/30',
   closed: 'text-status-closed bg-slate-400/10 border-slate-400/30',
   referred: 'text-status-referred bg-purple-400/10 border-purple-400/30',
 }
@@ -90,9 +91,9 @@ export default function TrackResultPage() {
 
             <div className="space-y-3">
               <div className="flex gap-4 py-3 border-b border-surface-border">
-                <span className="text-body-sm text-text-muted w-32 shrink-0">Complaint Type</span>
+                <span className="text-body-sm text-text-muted w-32 shrink-0">Incident Type</span>
                 <span className="text-body-sm text-text-primary capitalize">
-                  {caseData.complaint_type.replace(/_/g, ' ')}
+                  {(caseData.incident_type || caseData.complaint_type || '').replace(/_/g, ' ')}
                 </span>
               </div>
               <div className="flex gap-4 py-3 border-b border-surface-border">
@@ -130,16 +131,16 @@ export default function TrackResultPage() {
           )}
 
           <div className="card-base p-5">
-            <p className="text-caption text-text-muted uppercase tracking-widest mb-2">Privacy Notice</p>
+            <p className="text-caption text-text-muted uppercase tracking-widest mb-2">Security & Privacy Notice</p>
             <p className="text-body-sm text-text-secondary">
-              Your complaint has been received and is being processed by the Nepal Cyber Bureau.
-              Sensitive case details are not publicly disclosed to protect the integrity of the investigation.
+              Your incident report has been received and logged into the Incident Management System.
+              Internal investigation details and sensitive IOCs are restricted to protect operational security.
             </p>
           </div>
 
           <p className="text-caption text-text-disabled text-center mt-4">
-            For urgent matters, contact the Nepal Cyber Bureau at{' '}
-            <span className="text-text-muted">cyber@nepalpolice.gov.np</span>
+            For urgent escalations, contact the Security Operations Center at{' '}
+            <span className="text-text-muted">soc@veridact.com</span>
           </p>
         </div>
       )}

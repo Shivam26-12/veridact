@@ -18,7 +18,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['investigator', 'supervisor', 'super_admin'] },
-  { label: 'Cases', path: '/dashboard/cases', icon: FolderOpen, roles: ['investigator', 'supervisor', 'super_admin'] },
+  { label: 'Incidents', path: '/dashboard/cases', icon: FolderOpen, roles: ['investigator', 'supervisor', 'super_admin'] },
   { label: 'Reports', path: '/dashboard/reports', icon: FileText, roles: ['investigator', 'supervisor', 'super_admin'] },
   { label: 'Analytics', path: '/dashboard/analytics', icon: BarChart3, roles: ['supervisor', 'super_admin'] },
 ]
@@ -61,7 +61,7 @@ export default function Sidebar({ role }: SidebarProps) {
           <span className="font-brand font-bold text-text-primary text-sm tracking-tight block leading-none">
             VERIDACT
           </span>
-          <span className="text-[10px] text-text-disabled tracking-widest uppercase">Forensic Platform</span>
+          <span className="text-[10px] text-text-disabled tracking-widest uppercase">Incident Management</span>
         </div>
       </div>
 

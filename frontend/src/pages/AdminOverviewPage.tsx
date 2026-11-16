@@ -1,26 +1,63 @@
 // ============================================================
-// AdminOverviewPage — Super admin system overview
+// AdminOverviewPage — Super admin system overview (live API)
 // ============================================================
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, Clock, Settings, FolderOpen, FileText, Activity } from 'lucide-react'
+import { Users, Clock, Settings, FolderOpen, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react'
+import { adminService } from '@/services/adminService'
+import type { AnalyticsSummary } from '@/types/api.types'
 
 export default function AdminOverviewPage() {
   const navigate = useNavigate()
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
+  const [userCount, setUserCount] = useState<number>(0)
+  const [custodyCount, setCustodyCount] = useState<number>(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      adminService.getAnalytics().catch(() => null),
+      adminService.getUsers().catch(() => null),
+      adminService.getCustodyLogs({ size: 1 }).catch(() => null),
+    ]).then(([analyticsData, usersData, custodyData]) => {
+      if (!cancelled) {
+        if (analyticsData) setAnalytics(analyticsData)
+        if (usersData) setUserCount(usersData.total)
+        if (custodyData) setCustodyCount(custodyData.total)
+      }
+    }).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-text-muted">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-primary" />
+        <p className="text-body-sm">Loading system overview...</p>
+      </div>
+    )
+  }
+
+  const statItems = [
+    { label: 'Registered Users', value: userCount, icon: Users },
+    { label: 'Total Incidents', value: analytics?.total_incidents ?? 0, icon: FolderOpen },
+    { label: 'Active Triage Cases', value: analytics?.open_cases ?? 0, icon: AlertTriangle },
+    { label: 'Resolved Incidents', value: analytics?.resolved_cases ?? 0, icon: ShieldCheck },
+    { label: 'Custody Audit Events', value: custodyCount, icon: Clock },
+    { label: 'System Status', value: 'Operational', icon: Settings },
+  ]
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div>
         <h1 className="text-h2 font-bold text-text-primary">Admin Overview</h1>
-        <p className="text-body-sm text-text-muted mt-1">System-wide health and management</p>
+        <p className="text-body-sm text-text-muted mt-1">SOC incident management system telemetry and health</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { label: 'Total Users', value: 12, icon: Users },
-          { label: 'Total Cases', value: 952, icon: FolderOpen },
-          { label: 'Evidence Files', value: 2847, icon: Activity },
-          { label: 'Reports Generated', value: 1203, icon: FileText },
-          { label: 'Custody Events', value: 18392, icon: Clock },
-          { label: 'System Status', value: 'Operational', icon: Settings },
-        ].map(stat => (
+        {statItems.map(stat => (
           <div key={stat.label} className="card-base p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 rounded-lg bg-accent-subtle flex items-center justify-center">
@@ -32,13 +69,18 @@ export default function AdminOverviewPage() {
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Manage Users', path: '/admin/users', icon: Users, desc: 'Create, edit, deactivate user accounts' },
-          { label: 'Custody Log', path: '/admin/custody', icon: Clock, desc: 'Full audit trail of all system events' },
-          { label: 'Settings', path: '/admin/settings', icon: Settings, desc: 'View system configuration and .env values' },
+          { label: 'Manage Users', path: '/admin/users', icon: Users, desc: 'View, edit, and deactivate accounts' },
+          { label: 'Custody Log', path: '/admin/custody', icon: Clock, desc: 'Full immutable audit trail of system events' },
+          { label: 'Settings', path: '/admin/settings', icon: Settings, desc: 'Inspect platform configuration & policies' },
         ].map(item => (
-          <button key={item.label} id={`admin-overview-${item.label.toLowerCase().replace(/\s/g, '-')}`} onClick={() => navigate(item.path)} className="card-base card-hover p-6 text-left">
+          <button
+            key={item.label}
+            id={`admin-overview-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+            onClick={() => navigate(item.path)}
+            className="card-base card-hover p-6 text-left"
+          >
             <item.icon className="w-6 h-6 text-accent-primary mb-3" />
             <p className="text-body font-semibold text-text-primary">{item.label}</p>
             <p className="text-body-sm text-text-muted mt-1">{item.desc}</p>

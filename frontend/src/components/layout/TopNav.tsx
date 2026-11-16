@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 const ROUTE_LABELS: Record<string, string> = {
   '/dashboard': 'Dashboard',
-  '/dashboard/cases': 'Cases',
+  '/dashboard/cases': 'Incidents',
   '/dashboard/reports': 'Reports',
   '/dashboard/analytics': 'Analytics',
   '/admin': 'Admin Overview',
@@ -31,8 +31,8 @@ export default function TopNav() {
   const pageTitle = (() => {
     const exact = ROUTE_LABELS[location.pathname]
     if (exact) return exact
-    if (location.pathname.includes('/evidence/')) return 'Evidence Analysis'
-    if (location.pathname.match(/\/cases\/[^/]+$/)) return 'Case Detail'
+    if (location.pathname.includes('/evidence/')) return 'Evidence Details'
+    if (location.pathname.match(/\/cases\/[^/]+$/)) return 'Incident Detail'
     return 'VERIDACT'
   })()
 

@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().min(3, 'Please enter your email address'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -54,9 +54,9 @@ export default function LoginPage() {
   }
 
   const demoCredentials = [
-    { label: 'Admin', email: 'admin@veridact.gov.np', password: 'demo1234' },
-    { label: 'Investigator', email: 'inv1@veridact.gov.np', password: 'demo1234' },
-    { label: 'Citizen', email: 'citizen1@veridact.gov.np', password: 'demo1234' },
+    { label: 'Admin', email: 'admin@veridact.com', password: 'demo1234' },
+    { label: 'Investigator', email: 'inv1@veridact.com', password: 'demo1234' },
+    { label: 'Citizen', email: 'citizen1@veridact.com', password: 'demo1234' },
   ]
 
   return (
@@ -70,7 +70,7 @@ export default function LoginPage() {
               <Shield className="w-6 h-6 text-accent-primary" />
             </div>
             <h1 className="text-h3 font-bold text-text-primary font-brand">VERIDACT</h1>
-            <p className="text-body-sm text-text-muted mt-1">Investigator Portal</p>
+            <p className="text-body-sm text-text-muted mt-1">Incident Management Portal</p>
           </div>
 
           {/* Form */}
@@ -84,10 +84,10 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   id="login-email"
-                  type="email"
+                  type="text"
                   {...register('email')}
                   className={`input-base pl-10 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="you@veridact.gov.np"
+                  placeholder="you@veridact.com"
                   autoComplete="email"
                 />
               </div>

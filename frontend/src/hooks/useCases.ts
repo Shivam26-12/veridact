@@ -1,15 +1,15 @@
 // ============================================================
-// useCases — Stub hook for cases data fetching
-// TODO Phase 3: Replace with real API calls via caseService
+// useCases — Fetches paginated case list from live backend API
 // ============================================================
 import { useState, useEffect } from 'react'
 import type { Case, PaginatedResponse } from '@/types'
-import { MOCK_CASES } from '@/lib/mockData'
+import { caseService } from '@/services/caseService'
 
 export interface UseCasesOptions {
   status?: string
-  complaint_type?: string
-  priority?: string
+  incident_type?: string
+  severity?: string
+  search?: string
   page?: number
   size?: number
 }
@@ -20,36 +20,29 @@ export function useCases(options: UseCasesOptions = {}) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const fetchCases = async () => {
       setIsLoading(true)
       setError(null)
       try {
-        // TODO Phase 3: Replace with caseService.getCases(options)
-        await new Promise(res => setTimeout(res, 600))
-        const filtered = MOCK_CASES.filter(c => {
-          if (options.status && c.status !== options.status) return false
-          if (options.complaint_type && c.complaint_type !== options.complaint_type) return false
-          if (options.priority && c.priority !== options.priority) return false
-          return true
+        const result = await caseService.getCases({
+          status: options.status || undefined,
+          incident_type: options.incident_type || undefined,
+          severity: options.severity || undefined,
+          search: options.search || undefined,
+          page: options.page ?? 1,
+          size: options.size ?? 20,
         })
-        const page = options.page ?? 1
-        const size = options.size ?? 10
-        const start = (page - 1) * size
-        setData({
-          items: filtered.slice(start, start + size),
-          total: filtered.length,
-          page,
-          size,
-          pages: Math.ceil(filtered.length / size),
-        })
+        if (!cancelled) setData(result)
       } catch {
-        setError('Failed to load cases')
+        if (!cancelled) setError('Failed to load incidents')
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
     fetchCases()
-  }, [options.status, options.complaint_type, options.priority, options.page, options.size])
+    return () => { cancelled = true }
+  }, [options.status, options.incident_type, options.severity, options.search, options.page, options.size])
 
   return { data, isLoading, error }
 }

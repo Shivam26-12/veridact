@@ -38,7 +38,7 @@ async def create_case(
 ):
     """
     Creates a new case. Authenticated users are linked as submitter.
-    Returns the created case with VRD-YYYY-NNNNNN case number.
+    Returns the created case with INC-YYYY-NNNNNN case number.
     """
     new_case = case_service.create_case(db, body, submitter_id=current_user.id)
     return CaseResponse(**_enrich_case(new_case))
@@ -59,8 +59,8 @@ async def create_case_anonymous(
 @router.get("", response_model=CaseListResponse)
 async def list_cases(
     status: str = Query(None),
-    complaint_type: str = Query(None),
-    priority: str = Query(None),
+    complaint_type: str = Query(None, alias="incident_type"),
+    priority: str = Query(None, alias="severity"),
     assigned_to: str = Query(None),
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -71,8 +71,8 @@ async def list_cases(
     """Returns paginated, role-filtered case list."""
     filters = {
         "status": status,
-        "complaint_type": complaint_type,
-        "priority": priority,
+        "incident_type": complaint_type,
+        "severity": priority,
         "assigned_to": assigned_to,
         "search": search,
     }
@@ -125,7 +125,7 @@ async def update_case(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Updates case status, priority, or assignment. Enforces role permissions."""
+    """Updates case status, severity, or assignment. Enforces role permissions."""
     updated = case_service.update_case(db, case_id, body, current_user)
     return CaseResponse(**_enrich_case(updated))
 

@@ -1,18 +1,18 @@
 // ============================================================
-// ReportsPage — List of generated forensic reports
+// ReportsPage — List of generated incident reports
 // ============================================================
-import { FileText, Download, ExternalLink } from 'lucide-react'
+import { FileText, Download } from 'lucide-react'
 
 const MOCK_REPORTS = [
-  { id: 'rpt-001', case_number: 'VRD-2025-000001', type: 'forensic_summary', generated_by: 'Arjun Thapa', generated_at: '2025-05-23T10:00:00Z', hash: 'b4c8d2e1f' },
-  { id: 'rpt-002', case_number: 'VRD-2025-000003', type: 'full_report', generated_by: 'Arjun Thapa', generated_at: '2025-05-24T14:30:00Z', hash: 'f2a7c9e3d' },
+  { id: 'rpt-001', case_number: 'INC-2025-000001', type: 'incident_summary', generated_by: 'Officer Ram Shrestha', generated_at: '2025-05-23T10:00:00Z', hash: 'b4c8d2e1f' },
+  { id: 'rpt-002', case_number: 'INC-2025-000004', type: 'post_incident_review', generated_by: 'Officer Sita Rai', generated_at: '2025-05-24T14:30:00Z', hash: 'f2a7c9e3d' },
 ]
 
 export default function ReportsPage() {
   return (
     <div className="space-y-5 animate-slide-up">
       <div>
-        <h1 className="text-h2 font-bold text-text-primary">Forensic Reports</h1>
+        <h1 className="text-h2 font-bold text-text-primary">Incident Reports</h1>
         <p className="text-body-sm text-text-muted mt-1">{MOCK_REPORTS.length} reports generated</p>
       </div>
 

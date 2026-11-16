@@ -27,28 +27,34 @@ ALL_ALLOWED_EXTENSIONS = {
 
 # MIME → evidence type mapping
 MIME_TO_TYPE: dict[str, str] = {
-    "image/jpeg": "image",
-    "image/png": "image",
-    "image/gif": "image",
-    "image/bmp": "image",
-    "image/webp": "image",
-    "video/mp4": "video",
-    "video/avi": "video",
-    "video/x-msvideo": "video",
-    "video/quicktime": "video",
-    "video/x-matroska": "video",
-    "audio/mpeg": "audio",
-    "audio/wav": "audio",
-    "audio/x-wav": "audio",
-    "audio/aac": "audio",
-    "audio/ogg": "audio",
-    "audio/flac": "audio",
-    "audio/x-flac": "audio",
+    # Screenshots
+    "image/jpeg": "screenshot",
+    "image/png": "screenshot",
+    "image/gif": "screenshot",
+    "image/bmp": "screenshot",
+    "image/webp": "screenshot",
+    # Documents
     "application/pdf": "document",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "document",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "document",
-    "text/plain": "document",
     "application/msword": "document",
+    # Log files
+    "text/plain": "log_file",
+    "text/csv": "log_file",
+    "application/json": "log_file",
+    # Network captures
+    "application/vnd.tcpdump.pcap": "network_capture",
+    "application/x-pcap": "network_capture",
+    "application/pcap": "network_capture",
+    "application/cap": "network_capture",
+    # Emails
+    "message/rfc822": "email",
+    "application/vnd.ms-outlook": "email",
+    # Archives / other
+    "application/zip": "other",
+    "application/x-zip-compressed": "other",
+    "application/x-tar": "other",
+    "application/gzip": "other",
 }
 
 
@@ -123,18 +129,18 @@ def _mime_from_extension(ext: str) -> str:
         ".gif": "image/gif",
         ".bmp": "image/bmp",
         ".webp": "image/webp",
-        ".mp4": "video/mp4",
-        ".avi": "video/x-msvideo",
-        ".mov": "video/quicktime",
-        ".mkv": "video/x-matroska",
-        ".mp3": "audio/mpeg",
-        ".wav": "audio/wav",
-        ".aac": "audio/aac",
-        ".ogg": "audio/ogg",
-        ".flac": "audio/flac",
         ".pdf": "application/pdf",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ".txt": "text/plain",
+        ".log": "text/plain",
+        ".csv": "text/csv",
+        ".pcap": "application/vnd.tcpdump.pcap",
+        ".pcapng": "application/vnd.tcpdump.pcap",
+        ".eml": "message/rfc822",
+        ".msg": "application/vnd.ms-outlook",
+        ".zip": "application/zip",
+        ".tar": "application/x-tar",
+        ".gz": "application/gzip",
     }
     return EXT_TO_MIME.get(ext, "application/octet-stream")

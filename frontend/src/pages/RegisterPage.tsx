@@ -92,7 +92,7 @@ export default function RegisterPage() {
               <Shield className="w-6 h-6 text-accent-primary" />
             </div>
             <h1 className="text-h3 font-bold text-text-primary font-brand">Create Account</h1>
-            <p className="text-body-sm text-text-muted mt-1">Citizen access to VERIDACT</p>
+            <p className="text-body-sm text-text-muted mt-1">Access to VERIDACT Incident System</p>
           </div>
 
           {success ? (

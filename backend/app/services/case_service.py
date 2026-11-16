@@ -20,12 +20,12 @@ logger = logging.getLogger(__name__)
 
 def generate_case_number(db: Session) -> str:
     """
-    Count existing cases + 1 and format as VRD-YYYY-NNNNNN.
+    Count existing cases + 1 and format as INC-YYYY-NNNNNN.
     Thread-safe: uses DB count which is atomic within a transaction.
     """
     count = db.query(Case).count()
     year = datetime.utcnow().year
-    return f"VRD-{year}-{str(count + 1).zfill(6)}"
+    return f"INC-{year}-{str(count + 1).zfill(6)}"
 
 
 def create_case(
@@ -42,11 +42,12 @@ def create_case(
         case_number=case_number,
         title=data.title,
         description=data.description,
-        complaint_type=data.complaint_type,
+        incident_type=data.incident_type,
         submitted_by=submitter_id,
         contact_email=data.contact_email,
         contact_phone=data.contact_phone,
         location=data.location,
+        affected_systems=getattr(data, 'affected_systems', None),
     )
 
     db.add(new_case)
@@ -59,7 +60,7 @@ def create_case(
         case_id=new_case.id,
         action="case_created",
         performed_by_id=submitter_id,
-        notes=f"Case {case_number} created. Complaint type: {data.complaint_type}",
+        notes=f"Incident {case_number} created. Type: {data.incident_type}",
     )
 
     return new_case
@@ -110,10 +111,10 @@ def list_cases(
     # Optional filters
     if filters.get("status"):
         query = query.filter(Case.status == filters["status"])
-    if filters.get("complaint_type"):
-        query = query.filter(Case.complaint_type == filters["complaint_type"])
-    if filters.get("priority"):
-        query = query.filter(Case.priority == filters["priority"])
+    if filters.get("incident_type"):
+        query = query.filter(Case.incident_type == filters["incident_type"])
+    if filters.get("severity"):
+        query = query.filter(Case.severity == filters["severity"])
     if filters.get("assigned_to"):
         query = query.filter(Case.assigned_to == filters["assigned_to"])
     if filters.get("search"):
@@ -163,9 +164,9 @@ def update_case(
         if data.status == "closed":
             case.closed_at = datetime.utcnow()
 
-    if data.priority is not None and data.priority != case.priority:
-        changes.append(f"priority: {case.priority} → {data.priority}")
-        case.priority = data.priority
+    if data.severity is not None and data.severity != case.severity:
+        changes.append(f"severity: {case.severity} → {data.severity}")
+        case.severity = data.severity
 
     if data.assigned_to is not None and data.assigned_to != case.assigned_to:
         # Validate assignee exists

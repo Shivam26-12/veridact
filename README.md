@@ -1,79 +1,133 @@
 # VERIDACT
 
-> The ultimate digital forensics and media verification suite for tamper detection, authenticity validation, and truth assurance.
+> **Cybersecurity Incident Reporting and Management System**  
+> Incident reporting, severity assessment, investigation tracking, response workflows, and audit logs.
+
+---
+
+## 🛡️ Overview
+
+**VERIDACT** is a full-stack Software Engineering (SE) project designed for cybersecurity incident lifecycle management. The system enables organizations and security teams to efficiently handle cyber incidents through standard Computer Security Incident Response (CSIR) operations: from citizen/employee incident intake, automated severity assessment and triage, through investigation tracking, response workflows (containment, eradication, recovery, notification), to cryptographic audit trails and comprehensive post-incident reporting.
 
 ---
 
 ## 🛠️ Tech Stack
 
-Veridact is built using a modern, scalable, and secure technology stack designed for high-performance forensics analysis:
+Veridact is built using a modern, scalable, and secure software engineering stack:
 
-- **Frontend**: React (Next.js / Vite), TypeScript, Tailwind CSS, Lucide Icons, Recharts (for analytics & metadata visualization)
-- **Backend API**: Python (FastAPI / Flask) or Node.js (Express) with robust asynchronous handling
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts (for SOC incident analytics), React Hook Form, Zod
+- **Backend API**: Python 3.12+, FastAPI, SQLAlchemy 2.0 (ORM), Pydantic v2
 - **Database**: SQLite (Development) / PostgreSQL (Production)
-- **Forensic & Computer Vision Engines**: OpenCV, TensorFlow/PyTorch (Deepfake detection models), PIL (Pillow), Librosa (Audio analysis)
-- **Caching & Background Tasks**: Redis & Celery (for long-running media processing jobs)
+- **Security & Cryptography**: JWT Bearer Tokens, Bcrypt password hashing, SHA-256 evidence integrity hashing and immutable chain-of-custody logging
 
 ---
 
-## 🚀 Quickstart Commands
+## ✨ Core Pillars & Features
 
-*(To be finalized and filled as implementation progresses)*
+### 1. Incident Reporting & Ingestion
+- **Public & Authenticated Reporting**: Multi-step guided wizard for submitting incidents (phishing, ransomware, data breach, DDoS, malware, unauthorized access, insider threat, web app attacks, etc.).
+- **Evidence Collection**: File attachments (log files, network captures `.pcap`, screenshots, suspicious emails `.eml`, documents) secured with deterministic SHA-256 integrity hashing.
+- **Anonymous Tracking**: Public incident tracking endpoint returning sanitized status and response timeline without leaking sensitive IOCs.
 
+### 2. Severity Assessment & Triage
+- **Structured Severity Levels**: `Low`, `Medium`, `High`, and `Critical`.
+- **System Impact Scoping**: Tracks affected systems, hostnames, and IP subnets.
+- **Supervisor Triage**: Supervisors prioritize incoming incidents and assign designated investigators.
+
+### 3. Investigation Tracking
+- **Central Incident Dashboard**: Real-time status tracking (`open`, `in_progress`, `under_review`, `resolved`, `closed`, `referred`).
+- **Investigator Workload Management**: Role-based case assignment and progress monitoring.
+- **Evidence Management**: View cryptographic integrity hashes, file metadata, and case notes.
+
+### 4. Response Workflows
+- **Incident Response Stages**: Structured containment, eradication, recovery, authority notification, and escalation workflows.
+- **Workflow Action Logging**: Every response action is tracked with timestamp and investigator ID via dedicated API endpoints (`/api/incidents/{case_id}/response`).
+
+### 5. Audit Logs & Chain of Custody
+- **Immutable Audit Trail**: Every incident creation, status update, severity modification, assignment change, evidence upload, and access is recorded in `custody_logs`.
+- **Accountability**: Actor identity, action type, SHA-256 hash, and timestamps recorded for post-incident compliance reviews.
+
+### 6. Incident Reporting & Analytics
+- **Executive & SOC Metrics**: Influx rates, resolution velocity, severity distributions, and investigator workload visualizations via Recharts.
+- **Formal Reports**: Generation of post-incident review documents and summaries.
+
+---
+
+## 👤 User Roles & Access Control
+
+The platform enforces strict Role-Based Access Control (RBAC):
+
+* **Super Admin**: System configuration, user account management, full custody audit access, incident soft-close.
+* **Supervisor**: Incident triage, severity assessment, investigator assignment, SOC department analytics.
+* **Investigator**: Incident investigation, evidence inspection, response action logging, notes and report generation.
+* **Citizen / Reporter**: Submit incident reports (public wizard or authenticated) and track incident status using the incident tracking number (`INC-YYYY-NNNNNN`).
+
+---
+
+## 🚀 Quickstart Guide
+
+### Prerequisites
+- Node.js 18+ & npm
+- Python 3.10+ & virtual environment
+
+### 1. Backend Setup
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/veridact.git
-cd veridact
+cd backend
 
-# Setup Backend environment
-# [Detailed instructions to be filled]
+# Create virtual environment & activate
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Setup Frontend environment
-# [Detailed instructions to be filled]
+# Install dependencies (no ML libraries required)
+pip install -r requirements.txt
+
+# Seed the database with demo users and sample incidents
+python seed.py --reset
+
+# Run backend API server (runs at http://localhost:8000)
+python run.py
+```
+
+### 2. Frontend Setup
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server (runs at http://localhost:5173)
+npm run dev
 ```
 
 ---
 
-## ✨ Feature Overview
+## 🔑 Demo Credentials
 
-Veridact provides a comprehensive suite of digital media verification and forensic investigation tools:
+All seeded demo accounts use the password: `demo1234`
 
-1. **Image & Video Forensics**:
-   - **Metadata Analysis**: Extraction of EXIF data, software signatures, camera profiles, and GPS coordinates.
-   - **Error Level Analysis (ELA)**: Detects differences in image compression levels to pinpoint manipulated regions.
-   - **Noise Analysis**: Identifies inconsistencies in the sensor noise pattern of an image.
-   - **Clone/Copy-Move Detection**: Highlights duplicated regions within a single frame.
-
-2. **Audio Authenticity**:
-   - **Spectral Analysis**: Visualizes audio frequencies to detect splicing, cuts, or insertions.
-   - **Voiceprint Verification**: Ensures speaker identity and detects deepfake/synthesized voice profiles.
-
-3. **Tamper Visualization**:
-   - **Interactive Heatmaps**: Overlay maps pinpointing exact coordinates of detected edits and anomalies.
-
-4. **Forensic Reporting & Chain of Custody**:
-   - **Immutable Logging**: Secures evidentiary files with cryptographic hashing.
-   - **Professional Export**: Generates PDF/HTML reports with detailed analysis summaries and evidence history.
+| Role | Email | Name |
+|---|---|---|
+| Super Admin | `admin@veridact.com` | System Administrator |
+| Supervisor | `supervisor@veridact.com` | Priya Sharma |
+| Investigator | `inv1@veridact.com` | Officer Ram Shrestha |
+| Investigator | `inv2@veridact.com` | Officer Sita Rai |
+| Citizen | `citizen1@veridact.com` | Arjun Thapa |
+| Citizen | `citizen2@veridact.com` | Nisha Gurung |
 
 ---
 
-## 👤 User Roles
+## 📡 API Endpoints Overview
 
-The platform supports distinct permission tiers tailored to specific workflows:
-
-*   **Forensic Investigator / Analyst**: Core user with full access to upload media, run analysis pipelines, view detailed heatmaps, and export forensic reports.
-*   **Admin / Supervisor**: Manages system configurations, oversees analyst workspaces, reviews reports, and manages user accounts.
-*   **Guest / Reporter**: Read-only access to view verified reports and check verification status using a public report hash.
-
----
-
-## 📂 Project Documentation
-
-All design requirements, technical briefs, and implementation plans are located in the [docs/](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/) folder:
-
-1. [01_PRODUCT_REQUIREMENTS_DOCUMENT.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/01_PRODUCT_REQUIREMENTS_DOCUMENT.md) - Core scope, feature requirements, and user personas.
-2. [02_TECHNICAL_REQUIREMENTS_DOCUMENT.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/02_TECHNICAL_REQUIREMENTS_DOCUMENT.md) - Architecture, API, and safety guidelines.
-3. [03_APP_FLOW_AND_NAVIGATION.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/03_APP_FLOW_AND_NAVIGATION.md) - Site hierarchy and user flow layouts.
-4. [04_UI_UX_DESIGN_BRIEF.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/04_UI_UX_DESIGN_BRIEF.md) - Visual style, themes, and interactive components.
-5. [05_BACKEND_SCHEMA_AND_DATABASE_DESIGN.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/05_BACKEND_SCHEMA_AND_DATABASE_DESIGN.md) - Relational schemas, index structures, and storage layout.
-6. [06_IMPLEMENTATION_PLAN.md](file:///c:/Users/avdes/OneDrive/Desktop/Veridact/veridact/docs/06_IMPLEMENTATION_PLAN.md) - Phased development timeline and verification matrix.
+- `POST /api/auth/login` - Authenticate and obtain JWT token
+- `GET /api/cases` - List incidents with role-based filtering, search, severity, and status filters
+- `POST /api/cases` - Create an incident (authenticated)
+- `POST /api/cases/anonymous` - Submit incident report without authentication
+- `GET /api/cases/{case_id}` - Retrieve detailed incident data, evidence list, and investigation notes
+- `PATCH /api/cases/{case_id}` - Update incident status, severity, or investigator assignment
+- `POST /api/incidents/{case_id}/response` - Log response actions (contain, eradicate, recover, notify, escalate)
+- `GET /api/incidents/{case_id}/timeline` - Retrieve full chronological audit timeline
+- `POST /api/cases/{case_id}/evidence` - Upload evidence files with SHA-256 verification
+- `GET /api/public/cases/{case_number}` - Public citizen tracking endpoint
+- `GET /api/admin/users` - Admin user management
+- `GET /api/admin/custody` - System-wide audit log
+- `GET /api/admin/analytics` - SOC analytics overview

@@ -35,9 +35,6 @@ class Evidence(Base):
     # Relationships
     case = relationship("Case", back_populates="evidence")
     uploader = relationship("User", back_populates="evidence_uploads")
-    analysis_results = relationship(
-        "AnalysisResult", back_populates="evidence", cascade="all, delete-orphan"
-    )
     custody_logs = relationship("CustodyLog", back_populates="evidence")
 
     def __repr__(self):

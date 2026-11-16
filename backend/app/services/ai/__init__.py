@@ -1,1 +1,0 @@
-# VERIDACT — AI Services Package

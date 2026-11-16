@@ -1,5 +1,5 @@
 // ============================================================
-// TrackPage — Case number entry for citizens
+// TrackPage — Incident number entry for citizens
 // ============================================================
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -12,9 +12,9 @@ export default function TrackPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const pattern = /^VRD-\d{4}-\d{6}$/
+    const pattern = /^(INC|VRD)-\d{4}-\d{6}$/
     if (!pattern.test(caseNumber.trim())) {
-      setError('Please enter a valid case number (e.g. VRD-2025-000042)')
+      setError('Please enter a valid incident number (e.g. INC-2025-000042)')
       return
     }
     navigate(`/track/${caseNumber.trim()}`)
@@ -26,15 +26,15 @@ export default function TrackPage() {
         <div className="w-14 h-14 rounded-2xl bg-accent-subtle border border-accent-primary/30 flex items-center justify-center mx-auto mb-5">
           <Shield className="w-7 h-7 text-accent-primary" />
         </div>
-        <h1 className="text-h1 font-bold text-text-primary mb-3">Track Your Case</h1>
+        <h1 className="text-h1 font-bold text-text-primary mb-3">Track Your Incident</h1>
         <p className="text-body text-text-muted">
-          Enter the case number from your submission receipt to check the current status of your complaint.
+          Enter the incident number from your submission receipt to check the current status and response actions.
         </p>
       </div>
 
       <form id="track-form" onSubmit={handleSubmit} className="card-base p-6 text-left">
         <label htmlFor="track-case-number" className="block text-body-sm font-medium text-text-secondary mb-2">
-          Case Number
+          Incident Number
         </label>
         <div className="flex gap-3">
           <div className="relative flex-1">
@@ -45,7 +45,7 @@ export default function TrackPage() {
               value={caseNumber}
               onChange={e => { setCaseNumber(e.target.value.toUpperCase()); setError('') }}
               className="input-base pl-10 font-mono-data uppercase"
-              placeholder="VRD-2025-000042"
+              placeholder="INC-2025-000042"
               maxLength={18}
             />
           </div>
@@ -60,14 +60,14 @@ export default function TrackPage() {
           </div>
         )}
         <p className="text-caption text-text-muted mt-4">
-          Your case number was provided on the submission confirmation screen.
+          Your incident number was provided on the submission confirmation screen.
         </p>
       </form>
 
       {/* Demo links */}
       <div className="mt-6">
         <p className="text-caption text-text-disabled mb-2">Try a demo:</p>
-        {['VRD-2025-000001', 'VRD-2025-000003'].map(num => (
+        {['INC-2025-000001', 'INC-2025-000002'].map(num => (
           <button
             key={num}
             onClick={() => navigate(`/track/${num}`)}

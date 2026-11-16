@@ -1,5 +1,6 @@
 """
 VERIDACT — Database Seeder
+Cybersecurity Incident Reporting and Management System.
 Drops/creates tables and seeds initial demo users, cases, evidence, and custody logs.
 Run with: python seed.py --reset (fresh) or python seed.py (idempotent)
 """
@@ -32,7 +33,7 @@ def _past(days: int, hours: int = 0) -> datetime:
 
 def seed_database(reset: bool = False):
     print("=" * 60)
-    print("VERIDACT DATABASE SEEDER")
+    print("VERIDACT DATABASE SEEDER — Cybersecurity Incident System")
     print("=" * 60)
 
     if reset:
@@ -55,7 +56,7 @@ def seed_database(reset: bool = False):
 # ─── Users ────────────────────────────────────────────────────────────────────
 
 def seed_users(db):
-    if db.query(User).filter(User.email == "admin@veridact.gov.np").first():
+    if db.query(User).count() > 0:
         print("[*] Users already seeded — skipping.")
         return
 
@@ -63,12 +64,12 @@ def seed_users(db):
     hashed_pwd = get_password_hash("demo1234")
 
     users_to_create = [
-        User(id="usr-admin-001",  email="admin@veridact.gov.np",      name="System Administrator",   role="super_admin",  password_hash=hashed_pwd, organization="Veridact Admin"),
-        User(id="usr-super-001",  email="supervisor@veridact.gov.np",  name="Priya Sharma",           role="supervisor",   password_hash=hashed_pwd, organization="Nepal Cyber Bureau"),
-        User(id="usr-inv-001",    email="inv1@veridact.gov.np",        name="Officer Ram Shrestha",   role="investigator", password_hash=hashed_pwd, organization="Nepal Cyber Bureau"),
-        User(id="usr-inv-002",    email="inv2@veridact.gov.np",        name="Officer Sita Rai",       role="investigator", password_hash=hashed_pwd, organization="Nepal Cyber Bureau"),
-        User(id="usr-citizen-001",email="citizen1@veridact.gov.np",    name="Arjun Thapa",            role="citizen",      password_hash=hashed_pwd, organization=None),
-        User(id="usr-citizen-002",email="citizen2@veridact.gov.np",    name="Nisha Gurung",           role="citizen",      password_hash=hashed_pwd, organization=None),
+        User(id="usr-admin-001",  email="admin@veridact.com",      name="System Administrator",     role="super_admin",  password_hash=hashed_pwd, organization="Security Operations Center"),
+        User(id="usr-super-001",  email="supervisor@veridact.com",  name="Priya Sharma",             role="supervisor",   password_hash=hashed_pwd, organization="Security Operations Center"),
+        User(id="usr-inv-001",    email="inv1@veridact.com",        name="Officer Ram Shrestha",     role="investigator", password_hash=hashed_pwd, organization="Security Operations Center"),
+        User(id="usr-inv-002",    email="inv2@veridact.com",        name="Officer Sita Rai",         role="investigator", password_hash=hashed_pwd, organization="Security Operations Center"),
+        User(id="usr-citizen-001",email="citizen1@veridact.com",    name="Arjun Thapa",              role="citizen",      password_hash=hashed_pwd, organization=None),
+        User(id="usr-citizen-002",email="citizen2@veridact.com",    name="Nisha Gurung",             role="citizen",      password_hash=hashed_pwd, organization=None),
     ]
 
     db.add_all(users_to_create)
@@ -83,102 +84,102 @@ def seed_cases(db):
         print("[*] Cases already seeded — skipping.")
         return
 
-    print("[*] Seeding 5 demo cases...")
+    print("[*] Seeding 5 demo cybersecurity incidents...")
 
     INV1 = "usr-inv-001"
     INV2 = "usr-inv-002"
     CIT1 = "usr-citizen-001"
     CIT2 = "usr-citizen-002"
 
-    # ── Case 1 ─────────────────────────────────────────────────────────────────
+    # ── Case 1: Phishing ──────────────────────────────────────────────────────
     c1_id = "case-demo-001"
     c1 = Case(
         id=c1_id,
-        case_number="VRD-2025-000001",
-        title="Suspected Deepfake Harassment Video",
+        case_number="INC-2025-000001",
+        title="Phishing Campaign Targeting Finance Department",
         description=(
-            "A resident of Kathmandu reported receiving a deepfake video that was being "
-            "circulated on social media platforms, depicting them in a false and defamatory scenario. "
-            "The video appears to be generated using AI face-swap technology."
+            "Multiple employees received spoofed emails impersonating the CFO requesting "
+            "urgent wire transfers to external accounts. 3 users clicked the embedded link. "
+            "Credential harvesting page was live for 4 hours before takedown."
         ),
-        complaint_type="deepfake_video",
-        status="in_review",
-        priority="critical",
+        incident_type="phishing",
+        status="in_progress",
+        severity="high",
         submitted_by=CIT1,
         assigned_to=INV1,
-        contact_email="citizen1@veridact.gov.np",
+        contact_email="citizen1@veridact.com",
         contact_phone="+977-9841000001",
-        location="Kathmandu, Nepal",
+        location="Finance Department — HQ",
+        affected_systems="Email Server, Finance Workstations (3 hosts)",
+        response_status="containment_in_progress",
         created_at=_past(12),
         updated_at=_past(10),
     )
     db.add(c1)
     db.commit()
 
-    # Evidence for case 1 (2 items)
     e1a_id = str(uuid.uuid4())
     e1a = Evidence(
         id=e1a_id, case_id=c1_id, uploaded_by=CIT1,
-        original_filename="harassment_video.mp4",
-        stored_filename=f"{e1a_id}.mp4",
-        file_path=f"../uploads/evidence/{e1a_id}.mp4",
-        file_type="video", mime_type="video/mp4", file_size=18_432_000,
-        sha256_hash=_sha256("demo-evidence-case1-video"),
+        original_filename="phishing_email_headers.eml",
+        stored_filename=f"{e1a_id}.eml",
+        file_path=f"../uploads/evidence/{e1a_id}.eml",
+        file_type="document", mime_type="message/rfc822", file_size=18_432,
+        sha256_hash=_sha256("demo-evidence-case1-email"),
         upload_status="uploaded", uploaded_at=_past(12, 1),
     )
     e1b_id = str(uuid.uuid4())
     e1b = Evidence(
         id=e1b_id, case_id=c1_id, uploaded_by=INV1,
-        original_filename="original_source_screenshot.jpg",
-        stored_filename=f"{e1b_id}.jpg",
-        file_path=f"../uploads/evidence/{e1b_id}.jpg",
-        file_type="image", mime_type="image/jpeg", file_size=1_024_000,
+        original_filename="harvesting_page_screenshot.png",
+        stored_filename=f"{e1b_id}.png",
+        file_path=f"../uploads/evidence/{e1b_id}.png",
+        file_type="image", mime_type="image/png", file_size=1_024_000,
         sha256_hash=_sha256("demo-evidence-case1-screenshot"),
         upload_status="uploaded", uploaded_at=_past(11),
     )
     db.add_all([e1a, e1b])
     db.commit()
 
-    # Notes for case 1 (1 public, 1 internal)
     db.add(CaseNote(
         id=str(uuid.uuid4()), case_id=c1_id, author_id=INV1,
-        content="This case has been received and assigned for review. Our team will contact you if additional information is needed.",
+        content="Incident received and assigned. Phishing URL has been sinkholed. Affected users are being interviewed.",
         is_public=True, created_at=_past(10),
     ))
     db.add(CaseNote(
         id=str(uuid.uuid4()), case_id=c1_id, author_id=INV1,
-        content="Internal: Video metadata shows encoding artifacts consistent with GAN-based generation. Recommend running through deepfake classifier immediately.",
+        content="Internal: Sender IP traces to Eastern European hosting. 3 credential sets compromised. Force password reset + MFA enrollment.",
         is_public=False, created_at=_past(10, 2),
     ))
     db.commit()
 
-    # Custody for case 1
-    _log(db, c1_id, "case_created",     CIT1,  None,   _past(12),     "Case VRD-2025-000001 created. Complaint type: deepfake_video")
-    _log(db, c1_id, "evidence_uploaded", CIT1,  e1a_id, _past(12, 1),  f"File 'harassment_video.mp4' uploaded. SHA-256: {_sha256('demo-evidence-case1-video')}")
-    _log(db, c1_id, "evidence_uploaded", INV1,  e1b_id, _past(11),     f"File 'original_source_screenshot.jpg' uploaded. SHA-256: {_sha256('demo-evidence-case1-screenshot')}")
-    _log(db, c1_id, "case_updated",      INV1,  None,   _past(10),     "status: pending → in_review; assigned_to: None → usr-inv-001")
-    _log(db, c1_id, "analysis_started",  INV1,  e1a_id, _past(9),      "AI analysis initiated for harassment_video.mp4")
-    _log(db, c1_id, "analysis_completed",INV1,  e1a_id, _past(8, 6),   "Analysis complete. Verdict: likely_fake. Confidence: 0.91")
+    _log(db, c1_id, "incident_created",    CIT1,  None,   _past(12),    "Incident INC-2025-000001 created. Type: phishing")
+    _log(db, c1_id, "evidence_uploaded",   CIT1,  e1a_id, _past(12, 1), f"File 'phishing_email_headers.eml' uploaded. SHA-256: {_sha256('demo-evidence-case1-email')}")
+    _log(db, c1_id, "evidence_uploaded",   INV1,  e1b_id, _past(11),    f"File 'harvesting_page_screenshot.png' uploaded. SHA-256: {_sha256('demo-evidence-case1-screenshot')}")
+    _log(db, c1_id, "investigator_assigned", INV1, None,  _past(10),    "Incident assigned to Officer Ram Shrestha")
+    _log(db, c1_id, "status_updated",      INV1,  None,   _past(10),    "Status: open -> in_progress. Containment actions initiated.")
 
-    # ── Case 2 ─────────────────────────────────────────────────────────────────
+    # ── Case 2: Ransomware ────────────────────────────────────────────────────
     c2_id = "case-demo-002"
     c2 = Case(
         id=c2_id,
-        case_number="VRD-2025-000002",
-        title="Fake Identity Document — Citizenship Certificate",
+        case_number="INC-2025-000002",
+        title="Ransomware Infection — File Server FS-01",
         description=(
-            "A bank in Birgunj flagged a suspicious citizenship certificate submitted during "
-            "a loan application. The document shows signs of digital tampering in the photo field "
-            "and has inconsistent font rendering in the name section."
+            "File server FS-01 was found encrypted by LockBit 3.0 ransomware. Ransom note "
+            "found on desktop demanding 2 BTC. Server was immediately isolated from the network. "
+            "Backup integrity check is in progress."
         ),
-        complaint_type="fake_document",
-        status="analysis_complete",
-        priority="high",
+        incident_type="ransomware",
+        status="under_review",
+        severity="critical",
         submitted_by=CIT2,
         assigned_to=INV1,
-        contact_email="citizen2@veridact.gov.np",
+        contact_email="citizen2@veridact.com",
         contact_phone="+977-9841000002",
-        location="Birgunj, Parsa, Nepal",
+        location="Data Center — Rack B, Floor 2",
+        affected_systems="File Server FS-01, Backup Server BS-02",
+        response_status="contained",
         created_at=_past(20),
         updated_at=_past(5),
     )
@@ -188,42 +189,43 @@ def seed_cases(db):
     e2a_id = str(uuid.uuid4())
     e2a = Evidence(
         id=e2a_id, case_id=c2_id, uploaded_by=CIT2,
-        original_filename="citizenship_document_scan.pdf",
-        stored_filename=f"{e2a_id}.pdf",
-        file_path=f"../uploads/evidence/{e2a_id}.pdf",
-        file_type="document", mime_type="application/pdf", file_size=2_097_152,
-        sha256_hash=_sha256("demo-evidence-case2-pdf"),
+        original_filename="ransom_note.txt",
+        stored_filename=f"{e2a_id}.txt",
+        file_path=f"../uploads/evidence/{e2a_id}.txt",
+        file_type="document", mime_type="text/plain", file_size=2_048,
+        sha256_hash=_sha256("demo-evidence-case2-txt"),
         upload_status="uploaded", uploaded_at=_past(20, 1),
     )
     db.add(e2a)
     db.commit()
 
-    _log(db, c2_id, "case_created",      CIT2,  None,   _past(20),    "Case VRD-2025-000002 created. Complaint type: fake_document")
-    _log(db, c2_id, "evidence_uploaded", CIT2,  e2a_id, _past(20, 1), f"File 'citizenship_document_scan.pdf' uploaded. SHA-256: {_sha256('demo-evidence-case2-pdf')}")
-    _log(db, c2_id, "case_updated",      INV1,  None,   _past(18),    "status: pending → in_review; assigned_to: None → usr-inv-001")
-    _log(db, c2_id, "analysis_started",  INV1,  e2a_id, _past(15),    "AI analysis initiated for citizenship_document_scan.pdf")
-    _log(db, c2_id, "analysis_completed",INV1,  e2a_id, _past(14),    "Analysis complete. Verdict: suspicious. Confidence: 0.67")
-    _log(db, c2_id, "case_updated",      INV1,  None,   _past(5),     "status: in_review → analysis_complete")
+    _log(db, c2_id, "incident_created",    CIT2,  None,   _past(20),    "Incident INC-2025-000002 created. Type: ransomware")
+    _log(db, c2_id, "evidence_uploaded",   CIT2,  e2a_id, _past(20, 1), f"File 'ransom_note.txt' uploaded. SHA-256: {_sha256('demo-evidence-case2-txt')}")
+    _log(db, c2_id, "investigator_assigned", INV1, None,  _past(18),    "Incident assigned to Officer Ram Shrestha")
+    _log(db, c2_id, "status_updated",      INV1,  None,   _past(18),    "Status: open -> in_progress. FS-01 network-isolated.")
+    _log(db, c2_id, "status_updated",      INV1,  None,   _past(5),     "Status: in_progress -> under_review. Backup integrity verified.")
 
-    # ── Case 3 ─────────────────────────────────────────────────────────────────
+    # ── Case 3: Data Breach ───────────────────────────────────────────────────
     c3_id = "case-demo-003"
     c3 = Case(
         id=c3_id,
-        case_number="VRD-2025-000003",
-        title="Voice Clone Audio Used in Phone Fraud",
+        case_number="INC-2025-000003",
+        title="Unauthorized Access to Customer PII Database",
         description=(
-            "A retired government official in Pokhara reported that an unknown person used "
-            "a cloned version of their voice to defraud their family members over a phone call, "
-            "claiming to be in a medical emergency and requesting immediate money transfer."
+            "Database monitoring alerts detected anomalous bulk SELECT queries on the customer "
+            "PII table at 02:14 UTC. Approx. 15,000 records accessed. Source IP is external. "
+            "API Gateway logs show a valid but revoked service account token was used."
         ),
-        complaint_type="voice_clone",
-        status="pending",
-        priority="medium",
+        incident_type="data_breach",
+        status="open",
+        severity="critical",
         submitted_by=None,
         assigned_to=None,
         contact_email=None,
         contact_phone="+977-9856000003",
-        location="Pokhara, Kaski, Nepal",
+        location="Cloud Infrastructure — AWS us-east-1",
+        affected_systems="Customer DB (PostgreSQL), API Gateway",
+        response_status="pending_response",
         created_at=_past(3),
         updated_at=_past(3),
     )
@@ -233,38 +235,40 @@ def seed_cases(db):
     e3a_id = str(uuid.uuid4())
     e3a = Evidence(
         id=e3a_id, case_id=c3_id, uploaded_by=None,
-        original_filename="fraud_call_recording.mp3",
-        stored_filename=f"{e3a_id}.mp3",
-        file_path=f"../uploads/evidence/{e3a_id}.mp3",
-        file_type="audio", mime_type="audio/mpeg", file_size=3_145_728,
-        sha256_hash=_sha256("demo-evidence-case3-audio"),
+        original_filename="db_access_logs_2025_05_21.log",
+        stored_filename=f"{e3a_id}.log",
+        file_path=f"../uploads/evidence/{e3a_id}.log",
+        file_type="document", mime_type="text/plain", file_size=3_145_728,
+        sha256_hash=_sha256("demo-evidence-case3-log"),
         upload_status="uploaded", uploaded_at=_past(3, 1),
     )
     db.add(e3a)
     db.commit()
 
-    _log(db, c3_id, "case_created",     None,  None,   _past(3),     "Case VRD-2025-000003 created. Complaint type: voice_clone")
-    _log(db, c3_id, "evidence_uploaded",None,  e3a_id, _past(3, 1),  f"File 'fraud_call_recording.mp3' uploaded. SHA-256: {_sha256('demo-evidence-case3-audio')}")
+    _log(db, c3_id, "incident_created",  None, None,   _past(3),    "Incident INC-2025-000003 created. Type: data_breach")
+    _log(db, c3_id, "evidence_uploaded", None, e3a_id, _past(3, 1), f"File 'db_access_logs_2025_05_21.log' uploaded. SHA-256: {_sha256('demo-evidence-case3-log')}")
 
-    # ── Case 4 ─────────────────────────────────────────────────────────────────
+    # ── Case 4: DDoS ──────────────────────────────────────────────────────────
     c4_id = "case-demo-004"
     c4 = Case(
         id=c4_id,
-        case_number="VRD-2025-000004",
-        title="AI-Generated Profile Photo Used in Dating Scam",
+        case_number="INC-2025-000004",
+        title="DDoS Attack on Public Web Portal — 4-Hour Outage",
         description=(
-            "A victim in Lalitpur was defrauded by an individual using a clearly AI-generated "
-            "profile photograph on a social media platform. The profile was used to establish "
-            "a romantic relationship and subsequently extort money."
+            "Sustained volumetric DDoS attack caused 4 hours of service disruption on the main "
+            "citizen services portal. Peak traffic: 450 Gbps. CDN rate-limiting and upstream "
+            "null-routing were applied. Attributed to Mirai botnet variant."
         ),
-        complaint_type="deepfake_image",
-        status="report_generated",
-        priority="low",
+        incident_type="ddos",
+        status="resolved",
+        severity="high",
         submitted_by=CIT1,
         assigned_to=INV2,
-        contact_email="citizen1@veridact.gov.np",
+        contact_email="citizen1@veridact.com",
         contact_phone="+977-9841000001",
-        location="Lalitpur, Nepal",
+        location="Public Web Portal — CDN Edge",
+        affected_systems="Web Portal, Load Balancers (3), CDN Edge Nodes",
+        response_status="recovered",
         created_at=_past(30),
         updated_at=_past(2),
     )
@@ -274,52 +278,55 @@ def seed_cases(db):
     e4a_id = str(uuid.uuid4())
     e4a = Evidence(
         id=e4a_id, case_id=c4_id, uploaded_by=CIT1,
-        original_filename="suspect_profile_photo.jpg",
-        stored_filename=f"{e4a_id}.jpg",
-        file_path=f"../uploads/evidence/{e4a_id}.jpg",
-        file_type="image", mime_type="image/jpeg", file_size=512_000,
-        sha256_hash=_sha256("demo-evidence-case4-image"),
+        original_filename="traffic_capture_ddos.pcap",
+        stored_filename=f"{e4a_id}.pcap",
+        file_path=f"../uploads/evidence/{e4a_id}.pcap",
+        file_type="document", mime_type="application/vnd.tcpdump.pcap", file_size=52_428_800,
+        sha256_hash=_sha256("demo-evidence-case4-pcap"),
         upload_status="uploaded", uploaded_at=_past(30, 1),
     )
     e4b_id = str(uuid.uuid4())
     e4b = Evidence(
         id=e4b_id, case_id=c4_id, uploaded_by=INV2,
-        original_filename="conversation_screenshots.png",
-        stored_filename=f"{e4b_id}.png",
-        file_path=f"../uploads/evidence/{e4b_id}.png",
-        file_type="image", mime_type="image/png", file_size=768_000,
-        sha256_hash=_sha256("demo-evidence-case4-screenshots"),
+        original_filename="cdn_access_logs_attack_window.log",
+        stored_filename=f"{e4b_id}.log",
+        file_path=f"../uploads/evidence/{e4b_id}.log",
+        file_type="document", mime_type="text/plain", file_size=10_485_760,
+        sha256_hash=_sha256("demo-evidence-case4-logs"),
         upload_status="uploaded", uploaded_at=_past(28),
     )
     db.add_all([e4a, e4b])
     db.commit()
 
-    _log(db, c4_id, "case_created",      CIT1,  None,   _past(30),    "Case VRD-2025-000004 created. Complaint type: deepfake_image")
-    _log(db, c4_id, "evidence_uploaded", CIT1,  e4a_id, _past(30, 1), f"File 'suspect_profile_photo.jpg' uploaded. SHA-256: {_sha256('demo-evidence-case4-image')}")
-    _log(db, c4_id, "evidence_uploaded", INV2,  e4b_id, _past(28),    f"File 'conversation_screenshots.png' uploaded. SHA-256: {_sha256('demo-evidence-case4-screenshots')}")
-    _log(db, c4_id, "analysis_started",  INV2,  e4a_id, _past(25),    "AI analysis initiated for suspect_profile_photo.jpg")
-    _log(db, c4_id, "analysis_completed",INV2,  e4a_id, _past(24),    "Analysis complete. Verdict: likely_fake. Confidence: 0.87")
-    _log(db, c4_id, "report_generated",  INV2,  None,   _past(2),     "Forensic report generated and archived.")
+    _log(db, c4_id, "incident_created",    CIT1,  None,   _past(30),    "Incident INC-2025-000004 created. Type: ddos")
+    _log(db, c4_id, "evidence_uploaded",   CIT1,  e4a_id, _past(30, 1), f"File 'traffic_capture_ddos.pcap' uploaded. SHA-256: {_sha256('demo-evidence-case4-pcap')}")
+    _log(db, c4_id, "evidence_uploaded",   INV2,  e4b_id, _past(28),    f"File 'cdn_access_logs.log' uploaded. SHA-256: {_sha256('demo-evidence-case4-logs')}")
+    _log(db, c4_id, "investigator_assigned", INV2, None,  _past(25),    "Incident assigned to Officer Sita Rai")
+    _log(db, c4_id, "status_updated",      INV2,  None,   _past(24),    "Status: in_progress -> under_review. Null-route applied.")
+    _log(db, c4_id, "status_updated",      INV2,  None,   _past(2),     "Status: under_review -> resolved. Services fully restored.")
+    _log(db, c4_id, "report_generated",    INV2,  None,   _past(2),     "Incident report generated and archived.")
 
-    # ── Case 5 ─────────────────────────────────────────────────────────────────
+    # ── Case 5: Malware ───────────────────────────────────────────────────────
     c5_id = "case-demo-005"
     c5 = Case(
         id=c5_id,
-        case_number="VRD-2025-000005",
-        title="Synthetic Identity Used in Loan Application",
+        case_number="INC-2025-000005",
+        title="Keylogger Malware Detected on HR Workstations",
         description=(
-            "A microfinance institution in Dharan flagged a loan application containing "
-            "entirely fabricated personal details — including a face, address, and employment "
-            "history — believed to be generated by an AI-powered identity synthesis tool."
+            "Endpoint detection flagged keylogger activity on 3 HR workstations. "
+            "Initial analysis suggests the malware was delivered via a USB drive labelled "
+            "'Q1 Payroll'. HR credentials and sensitive employee data may be at risk."
         ),
-        complaint_type="synthetic_identity",
-        status="pending",
-        priority="high",
+        incident_type="malware",
+        status="open",
+        severity="medium",
         submitted_by=None,
         assigned_to=None,
         contact_email=None,
         contact_phone="+977-9825000005",
-        location="Dharan, Sunsari, Nepal",
+        location="HR Department — Floor 3",
+        affected_systems="HR-WS-01, HR-WS-02, HR-WS-03",
+        response_status="pending_response",
         created_at=_past(1),
         updated_at=_past(1),
     )
@@ -329,7 +336,7 @@ def seed_cases(db):
     e5a_id = str(uuid.uuid4())
     e5a = Evidence(
         id=e5a_id, case_id=c5_id, uploaded_by=None,
-        original_filename="loan_application_form.pdf",
+        original_filename="edr_malware_alert_report.pdf",
         stored_filename=f"{e5a_id}.pdf",
         file_path=f"../uploads/evidence/{e5a_id}.pdf",
         file_type="document", mime_type="application/pdf", file_size=1_048_576,
@@ -339,10 +346,10 @@ def seed_cases(db):
     db.add(e5a)
     db.commit()
 
-    _log(db, c5_id, "case_created",     None, None,   _past(1),    "Case VRD-2025-000005 created. Complaint type: synthetic_identity")
-    _log(db, c5_id, "evidence_uploaded",None, e5a_id, _past(1, 2), f"File 'loan_application_form.pdf' uploaded. SHA-256: {_sha256('demo-evidence-case5-pdf')}")
+    _log(db, c5_id, "incident_created",  None, None,   _past(1),    "Incident INC-2025-000005 created. Type: malware")
+    _log(db, c5_id, "evidence_uploaded", None, e5a_id, _past(1, 2), f"File 'edr_malware_alert_report.pdf' uploaded. SHA-256: {_sha256('demo-evidence-case5-pdf')}")
 
-    print("[*] Successfully seeded 5 cases, 8 evidence records, 2 case notes.")
+    print("[*] Successfully seeded 5 cybersecurity incidents, 8 evidence records, 2 case notes.")
 
 
 def _log(db, case_id, action, performed_by_id, evidence_id, ts, notes):
@@ -373,9 +380,9 @@ def print_summary(db):
         print(f"{u.role:<15} | {u.email:<30} | {u.name}")
     print("-" * 60)
     print()
-    print(f"Cases:      {db.query(Case).count()}")
+    print(f"Incidents:  {db.query(Case).count()}")
     print(f"Evidence:   {db.query(Evidence).count()}")
-    print(f"Custody:    {db.query(CustodyLog).count()}")
+    print(f"Audit Logs: {db.query(CustodyLog).count()}")
     print(f"Notes:      {db.query(CaseNote).count()}")
     print("-" * 60)
     print("Seed complete.")

@@ -10,9 +10,9 @@ const CONFIG_ITEMS = [
     { key: 'SECRET_KEY', value: '••••••••••••••••', sensitive: true },
     { key: 'JWT_EXPIRY_HOURS', value: '24', sensitive: false },
   ]},
-  { section: 'AI Models', items: [
-    { key: 'AI_MODEL_ENABLED', value: 'false (fallback mode)', sensitive: false },
-    { key: 'HEATMAP_ENABLED', value: 'false', sensitive: false },
+  { section: 'Incident Management', items: [
+    { key: 'AUTO_TRIAGE_SEVERITY', value: 'true', sensitive: false },
+    { key: 'AUDIT_LOGGING_STRICT', value: 'true (SHA-256 enabled)', sensitive: false },
     { key: 'MAX_FILE_SIZE_MB', value: '100', sensitive: false },
   ]},
   { section: 'Storage', items: [
